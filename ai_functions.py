@@ -10,24 +10,29 @@ client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", ""))
 def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
     """Tailor resume to match job description with ATS optimization."""
     system_prompt = (
-        "You are an elite ATS-optimization and hiring strategist.\n"
-        "Your ONLY goal is to modify the resume JSON so that it maximizes shortlisting and interview chances for the given Job Description.\n\n"
+          "You are an elite ATS-optimization and hiring strategist.\n"
+        "Your ONLY goal is to modify my resume JSON so that it maximizes shortlisting and interview chances for the given Job Description.\n\n"
         "STRICT RULES (DO NOT BREAK):\n"
-        "1. NAME must NEVER change.\n"
-        "2. EDUCATION must NEVER be removed (you MAY add relevant certifications/coursework).\n"
-        "3. Output MUST be valid JSON only. No explanations, no markdown, no backticks.\n"
+        "1. My NAME must NEVER change.\n"
+        "2. My EDUCATION must NEVER be removed.\n"
+        " - You MAY add relevant education, certifications, coursework, or micro-credentials.\n"
+        "3. Output MUST be valid JSON only. No explanations, no markdown.\n"
         "4. You ARE ALLOWED to:\n"
-        "   - Rewrite career_objective aggressively for alignment\n"
-        "   - Modify job titles to be closer to the target role\n"
-        "   - Rewrite experience bullet points using STAR + impact + metrics\n"
-        "   - Add/modify SKILLS and CERTIFICATIONS (realistic ones only)\n"
+        " - Rewrite my career_objective aggressively for alignment\n"
+        " - Modify job titles to be closer to the target role\n"
+        " - Rewrite experience bullet points using STAR + impact + metrics\n"
+        " - Add or tweak or change SKILLS and CERTIFICATIONS (basic to intermediate only)\n"
         "5. You MUST:\n"
-        "   - Optimize for ATS keywords from the job description\n"
-        "   - Mirror language from the Job Description\n"
-        "   - Prioritize business impact, tools, and quantifiable outcomes\n"
+        " - Optimize for ATS keywords\n"
+        " - Mirror language from the Job Description\n"
+        " - Prioritize business impact, tools, and outcomes as metrics\n"
         "6. Do NOT invent fake companies or degrees.\n"
-        "7. Do NOT downgrade experience - enhance it to match the target level.\n\n"
-        "OUTPUT: Return the FULL resume JSON with identical structure."
+        "7. Do NOT downgrade my experience.\n"
+        " Modify it to be closer to the target role or a level up\n\n"
+        "OUTPUT REQUIREMENTS:\n"
+        "- Return the FULL resume JSON\n"
+        "- Keep structure identical to my original resume JSON\n"
+        "- Make it sound like a strong mid–senior candidate, not a fresher\n"
     )
 
     user_prompt = json.dumps({
@@ -79,8 +84,10 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
         "- signature_name: string (from resume)\n"
         "- phone_number: string (phone only, no email)\n"
         "- email: string\n\n"
-        "Use resume + job description for alignment. Mirror JD language.\n"
-        "Keep it professional, 1 page, and focused on value proposition."
+        "Use resume + job description for alignment. Mirror JD language but sound like a human.\n"
+        "Keep it professional, 350 words, and focused on value proposition + willingness to grow as an employee."
+        "Return ONLY valid JSON.\n"
+        
     )
 
     user_prompt = json.dumps({
