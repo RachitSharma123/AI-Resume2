@@ -6,7 +6,7 @@ from datetime import datetime
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 
-from .drawing_utils import (
+from drawing_utils import (
     PAGE_W, PAGE_H, MIN_LINE_GAP,
     wrap_lines, draw_boxed_block, draw_wrapped_text,
     draw_section_title, draw_bullets, draw_divider,
