@@ -63,7 +63,7 @@ def main():
         cover_pdf = f"{safe_filename(out_name)}_CoverLetter.pdf"
     
     with col_right:
-        st.subheader("🎯 Job Description (for AI)")
+        st.subheader("🎯 Job Description")
         job_desc = st.text_area(
             "Paste the job description here",
             height=400,
