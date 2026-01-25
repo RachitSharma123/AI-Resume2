@@ -7,8 +7,8 @@ from pathlib import Path
 from datetime import datetime
 from openai import OpenAI
 
-from .pdf_generator import create_resume_pdf, create_cover_letter_pdf
-from .utils import safe_filename, open_pdf_in_new_tab
+from pdf_generator import create_resume_pdf, create_cover_letter_pdf
+from utils import safe_filename, open_pdf_in_new_tab
 
 # Initialize OpenAI client
 client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", ""))
