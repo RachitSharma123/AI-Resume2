@@ -33,7 +33,7 @@ def main():
                 st.error(str(e))
     
     # Load JSON data
-    JSON_PATH = Path("app/resume_data.json")
+    JSON_PATH = Path("resume_data.json")
     if not JSON_PATH.exists():
         st.error("resume_data.json not found in app directory")
         st.stop()
