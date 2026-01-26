@@ -309,8 +309,7 @@ def call_ai_compress_resume(resume_json: dict, model: str = "gpt-5.2") -> dict:
         
         text = resp.choices[0].message.content.strip()
         text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```
-, '', text)
+        text = re.sub(r'\s*```$', '', text)
         
         m = re.search(r'\{.*\}', text, flags=re.DOTALL)
         if m:
@@ -357,8 +356,7 @@ def call_ai_improve_from_ats(resume_json: dict, ats_results: dict, job_descripti
         
         text = resp.choices[0].message.content.strip()
         text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```
-, '', text)
+        text = re.sub(r'\s*```$', '', text)
         
         m = re.search(r'\{.*\}', text, flags=re.DOTALL)
         if m:
