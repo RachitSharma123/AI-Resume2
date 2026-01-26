@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-
+from reportlab.lib.units import cm
 from drawing_utils import (
     PAGE_W, PAGE_H, MIN_LINE_GAP,
     wrap_lines, draw_boxed_block, draw_wrapped_text,
