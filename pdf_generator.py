@@ -150,7 +150,7 @@ def create_resume_pdf(json_path="resume_data.json",
     
     # Education
     y = draw_section_title(c, "EDUCATION", left, y, size=10)  # Reduced from 11
-    y += 10  # Reduced spacing
+    y -= 2  # Reduced spacing
     
     col_gap = 0.6 * cm
     col_w = (content_w - col_gap) / 2
