@@ -75,8 +75,17 @@ def main():
         
         # JSON validation indicator
         try:
-            json.loads(st.session_state["edited_json"])
+            parsed_data = json.loads(st.session_state["edited_json"])
             st.success("✅ Valid JSON", icon="✅")
+            
+            # Show key fields for debugging
+            with st.expander("🔍 Quick Preview"):
+                st.write("**Name:**", parsed_data.get("name", "❌ NOT FOUND"))
+                st.write("**Contact:**", parsed_data.get("contact", "❌ NOT FOUND"))
+                st.write("**Career Objective:**", parsed_data.get("career_objective", "❌ NOT FOUND")[:100] + "...")
+                st.write("**Experience entries:**", len(parsed_data.get("experience", [])))
+                st.write("**Education entries:**", len(parsed_data.get("education", [])))
+                st.write("**Skills entries:**", len(parsed_data.get("skills_snapshot", [])))
         except json.JSONDecodeError as e:
             st.error(f"❌ Invalid JSON: {str(e)}", icon="❌")
         
