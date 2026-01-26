@@ -1,4 +1,4 @@
-# app/pdf_generator.py
+# pdf_generator.py
 import json
 import re
 from pathlib import Path
@@ -6,6 +6,7 @@ from datetime import datetime
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
+
 from drawing_utils import (
     PAGE_W, PAGE_H, MIN_LINE_GAP,
     wrap_lines, draw_boxed_block, draw_wrapped_text,
@@ -16,7 +17,22 @@ from drawing_utils import (
 def create_resume_pdf(json_path="resume_data.json", 
                      output_path="Rachit_Sharma_Resume_Generated.pdf"):
     """Generate resume PDF from JSON data."""
-    data = json.loads(Path(json_path).read_text(encoding="utf-8"))
+    # Read and parse JSON
+    try:
+        raw_data = json.loads(Path(json_path).read_text(encoding="utf-8"))
+        
+        # Handle nested structure: {"resume_json": {...}} or direct {...}
+        if "resume_json" in raw_data:
+            data = raw_data["resume_json"]
+            print("✅ Found nested 'resume_json' structure")
+        else:
+            data = raw_data
+            print("✅ Using direct JSON structure")
+        
+        print(f"✅ Loaded JSON data with keys: {list(data.keys())}")
+    except Exception as e:
+        print(f"❌ Error loading JSON: {e}")
+        raise
     
     c = canvas.Canvas(output_path, pagesize=A4)
     draw_page_border(c, PAGE_W, PAGE_H)
@@ -37,24 +53,33 @@ def create_resume_pdf(json_path="resume_data.json",
         return ypos
     
     # Header
+    name = data.get("name", "YOUR NAME")
+    contact = data.get("contact", "Location | Phone | Email")
+    print(f"📝 Drawing Name: {name}")
+    print(f"📝 Drawing Contact: {contact}")
+    print(f"📝 Starting Y position: {y}")
+    
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(left, y, data.get("name", "YOUR NAME"))
+    c.drawString(left, y, name)
     y -= 15
     
     c.setFont("Helvetica", 9)
-    c.drawString(left, y, data.get("contact", "Location | Phone | Email"))
+    c.drawString(left, y, contact)
     y -= 8
+    print(f"📝 Y after header: {y}")
     
     # Career Objective
     y = draw_divider(c, left, left + content_w, y)
     y -= 3
     y = new_page_if_needed(y)
+    
     y = draw_section_title(c, "CAREER OBJECTIVE", left, y, size=11)
     
     objective = data.get("career_objective", "")
-    y = draw_wrapped_text(c, objective, left, y, content_w, 
-                         font="Helvetica", size=10, leading=12)
+    print(f"📝 Career Objective length: {len(objective)} chars")
+    y = draw_wrapped_text(c, objective, left, y, content_w, font="Helvetica", size=10, leading=12)
     y -= 10
+    print(f"📝 Y after objective: {y}")
     
     # Skills Snapshot
     y = new_page_if_needed(y)
@@ -65,6 +90,7 @@ def create_resume_pdf(json_path="resume_data.json",
     value_x = left + label_w + gap
     value_w = content_w - label_w - gap
     
+    skills_count = 0
     for item in (data.get("skills_snapshot") or []):
         y = new_page_if_needed(y)
         label = item.get("label", "")
@@ -73,10 +99,11 @@ def create_resume_pdf(json_path="resume_data.json",
         c.setFont("Helvetica-Bold", 10)
         c.drawString(left, y, label)
         
-        y = draw_wrapped_text(c, value, value_x, y, value_w, 
-                             font="Helvetica", size=10, leading=12)
+        y = draw_wrapped_text(c, value, value_x, y, value_w, font="Helvetica", size=10, leading=12)
         y -= 2
+        skills_count += 1
     
+    print(f"📝 Drew {skills_count} skills entries")
     y -= 10
     
     # Experience
@@ -92,20 +119,22 @@ def create_resume_pdf(json_path="resume_data.json",
         y -= 13
         
         c.setFont("Helvetica-Bold", 10)
-        y = draw_wrapped_text(c, role_line, left, y, content_w, 
-                             font="Helvetica-Bold", size=10, leading=12)
+        y = draw_wrapped_text(c, role_line, left, y, content_w, font="Helvetica-Bold", size=10, leading=12)
         y -= 2
         
-        y = draw_bullets(c, bullets, left, y, content_w, 
-                        font="Helvetica", size=10, leading=12)
+        y = draw_bullets(c, bullets, left, y, content_w, font="Helvetica", size=10, leading=12)
         y -= 6
     
+    exp_count = 0
     for exp in (data.get("experience") or []):
         exp_block(
             exp.get("company", ""),
             exp.get("role_line", ""),
             exp.get("bullets", [])
         )
+        exp_count += 1
+    
+    print(f"📝 Drew {exp_count} experience entries")
     
     # Education
     y = draw_section_title(c, "EDUCATION", left, y, size=11)
@@ -121,6 +150,8 @@ def create_resume_pdf(json_path="resume_data.json",
     size = 8.5
     leading = 11
     edu_items = data.get("education", []) or []
+    
+    print(f"📝 Drawing {len(edu_items)} education entries")
     
     i = 0
     while i < len(edu_items):
@@ -180,6 +211,7 @@ def create_resume_pdf(json_path="resume_data.json",
         y = draw_bullets(c, certs, left, y, content_w)
         y = draw_divider(c, left, left + content_w, y)
         y -= 0
+        print(f"📝 Drew {len(certs)} certifications")
     
     # References
     refs = data.get("references") or []
@@ -188,17 +220,32 @@ def create_resume_pdf(json_path="resume_data.json",
         y = draw_section_title(c, "REFERENCE", left, y-2, size=11)
         for r in refs:
             y = new_page_if_needed(y)
-            y = draw_wrapped_text(c, r, left, y, content_w, 
-                                 font="Helvetica", size=8, leading=6)
+            y = draw_wrapped_text(c, r, left, y, content_w, font="Helvetica", size=8, leading=6)
             y -= 4
+        print(f"📝 Drew {len(refs)} references")
     
     c.save()
-    print(f"✅ Created resume: {output_path}")
+    print(f"✅ PDF saved to: {output_path}")
+    
+    # Verify file was created
+    if Path(output_path).exists():
+        file_size = Path(output_path).stat().st_size
+        print(f"✅ File created successfully: {file_size} bytes")
+    else:
+        print(f"❌ WARNING: File not found after save: {output_path}")
+
 
 def create_cover_letter_pdf(json_path="resume_data.json", 
                            output_path="Cover_Letter.pdf"):
     """Generate cover letter PDF from JSON data."""
-    data = json.loads(Path(json_path).read_text(encoding="utf-8"))
+    raw_data = json.loads(Path(json_path).read_text(encoding="utf-8"))
+    
+    # Handle nested structure
+    if "resume_json" in raw_data:
+        data = raw_data["resume_json"]
+    else:
+        data = raw_data
+    
     cl = data.get("cover_letter", {})
     
     c = canvas.Canvas(output_path, pagesize=A4)
@@ -343,7 +390,11 @@ def create_cover_letter_pdf(json_path="resume_data.json",
     
     # Save updated word_count back to file
     try:
-        Path(json_path).write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        if "resume_json" in raw_data:
+            raw_data["resume_json"] = data
+        else:
+            raw_data = data
+        Path(json_path).write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
     except Exception:
         pass
     
