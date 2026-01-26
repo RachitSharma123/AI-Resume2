@@ -15,7 +15,8 @@ from ai_functions import (
     call_ai_improve_bullets,
     call_ai_extract_keywords,
     call_ai_rewrite_objective,
-    call_ai_compress_resume
+    call_ai_compress_resume,
+    call_ai_improve_from_ats
 )
 
 def main():
@@ -110,7 +111,7 @@ def main():
         cover_pdf = f"{safe_filename(out_name)}_CoverLetter.pdf"
     
     with col_right:
-        st.subheader("🎯 Job Description")
+        st.subheader("🎯 Job Description (for AI)")
         job_desc = st.text_area(
             "Paste the job description here",
             height=400,
@@ -267,6 +268,40 @@ def main():
         with score_col4:
             st.metric("Skills Match", f"{results.get('skills_match', 0)}%")
         
+        # Auto-improve button
+        if st.button("🚀 AI: Auto-Fix Issues from ATS Analysis", type="primary", use_container_width=True):
+            if not st.session_state.get("job_desc", "").strip():
+                st.warning("⚠️ Need job description to improve resume!")
+            else:
+                with st.spinner("🔧 Improving resume based on ATS analysis..."):
+                    try:
+                        from ai_functions import call_ai_improve_from_ats
+                        
+                        raw_data = json.loads(st.session_state["edited_json"])
+                        if "resume_json" in raw_data:
+                            base = raw_data["resume_json"]
+                        else:
+                            base = raw_data
+                        
+                        improved = call_ai_improve_from_ats(
+                            base, 
+                            st.session_state["ats_results"],
+                            st.session_state["job_desc"]
+                        )
+                        
+                        if "resume_json" in raw_data:
+                            raw_data["resume_json"] = improved
+                        else:
+                            raw_data = improved
+                        
+                        st.session_state["edited_json"] = json.dumps(raw_data, indent=2, ensure_ascii=False)
+                        JSON_PATH.write_text(st.session_state["edited_json"], encoding="utf-8")
+                        
+                        st.success("✅ Resume improved based on ATS analysis! Run ATS analysis again to see new score.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
+        
         # Strengths and Weaknesses
         strength_col, weakness_col = st.columns(2)
         
@@ -317,6 +352,70 @@ def main():
     
     st.divider()
     
+    # ============== DEBUG SECTION ==============
+    with st.expander("🐛 Debug: Test Data Loading"):
+        col_test1, col_test2 = st.columns(2)
+        
+        with col_test1:
+            if st.button("🧪 Test JSON Parsing"):
+                try:
+                    raw_data = json.loads(st.session_state["edited_json"])
+                    
+                    # Handle nested structure
+                    if "resume_json" in raw_data:
+                        data = raw_data["resume_json"]
+                        st.info("Using nested 'resume_json' structure")
+                    else:
+                        data = raw_data
+                        st.info("Using direct structure")
+                    
+                    st.success("✅ JSON parsed successfully!")
+                    
+                    # Show all top-level keys
+                    st.write("**Top-level keys found:**", list(data.keys()))
+                    
+                    # Show sample data
+                    st.write("**Name:**", data.get("name", "NOT FOUND"))
+                    st.write("**Contact:**", data.get("contact", "NOT FOUND"))
+                    st.write("**Career Objective (first 100 chars):**", str(data.get("career_objective", "NOT FOUND"))[:100])
+                    st.write("**Number of Experience entries:**", len(data.get("experience", [])))
+                    st.write("**Number of Education entries:**", len(data.get("education", [])))
+                    st.write("**Number of Skills entries:**", len(data.get("skills_snapshot", [])))
+                    
+                    # Show first experience entry if exists
+                    if data.get("experience"):
+                        st.write("**First experience entry:**")
+                        st.json(data["experience"][0])
+                    
+                except Exception as e:
+                    st.error(f"Error: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
+        
+        with col_test2:
+            if st.button("🧪 Test Basic PDF Creation"):
+                try:
+                    from reportlab.pdfgen import canvas
+                    from reportlab.lib.pagesizes import A4
+                    
+                    test_pdf = "test_basic.pdf"
+                    c = canvas.Canvas(test_pdf, pagesize=A4)
+                    c.setFont("Helvetica-Bold", 24)
+                    c.drawString(100, 700, "TEST PDF - If you see this, PDF works!")
+                    c.drawString(100, 650, "Your Name Here")
+                    c.save()
+                    
+                    st.success("✅ Basic PDF created!")
+                    with open(test_pdf, "rb") as f:
+                        st.download_button("Download Test PDF", f, test_pdf, mime="application/pdf")
+                    
+                except Exception as e:
+                    st.error(f"Error: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
+    
+    st.divider()
+    
     # ============== PDF GENERATION SECTION ==============
     st.header("📄 Generate PDFs")
     
@@ -326,8 +425,20 @@ def main():
         if st.button("⚙️ Generate Resume PDF", use_container_width=True):
             with st.spinner("📄 Generating resume PDF..."):
                 try:
-                    data = json.loads(st.session_state["edited_json"])
-                    JSON_PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+                    # Parse and check data before generating
+                    raw_data = json.loads(st.session_state["edited_json"])
+                    
+                    # Handle nested structure
+                    if "resume_json" in raw_data:
+                        data = raw_data["resume_json"]
+                    else:
+                        data = raw_data
+                    
+                    # Debug: Show what we're about to use
+                    st.info(f"📊 Using data with {len(data.get('experience', []))} experience entries, {len(data.get('education', []))} education entries")
+                    
+                    # Save to file
+                    JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
                     
                     create_resume_pdf(json_path=str(JSON_PATH), output_path=output_pdf)
                     
@@ -347,17 +458,27 @@ def main():
                     st.error("❌ Invalid JSON. Please fix syntax errors in editor.")
                 except Exception as e:
                     st.error(f"❌ Error generating PDF: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
     
     with pdf_col2:
         if st.button("📝 Generate Cover Letter PDF", use_container_width=True):
             with st.spinner("📝 Generating cover letter PDF..."):
                 try:
-                    data = json.loads(st.session_state["edited_json"])
+                    raw_data = json.loads(st.session_state["edited_json"])
+                    
+                    # Handle nested structure
+                    if "resume_json" in raw_data:
+                        data = raw_data["resume_json"]
+                    else:
+                        data = raw_data
                     
                     if "cover_letter" not in data:
                         st.warning("⚠️ No cover letter found in JSON. Use 'AI: Generate Cover Letter' first!")
+                        st.info("💡 Click the '✍️ AI: Generate Cover Letter' button above to create a cover letter first.")
                     else:
-                        JSON_PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+                        # Save to file
+                        JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
                         
                         create_cover_letter_pdf(json_path=str(JSON_PATH), output_path=cover_pdf)
                         
@@ -377,6 +498,8 @@ def main():
                     st.error("❌ Invalid JSON in editor.")
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
 
 if __name__ == "__main__":
     main()
