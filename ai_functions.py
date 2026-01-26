@@ -7,7 +7,7 @@ import streamlit as st
 # Initialize OpenAI client
 client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", ""))
 
-def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
+def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str = "gpt-5.2") -> dict:
     """Tailor resume to match job description with ATS optimization."""
     system_prompt = (
           "You are an elite ATS-optimization and hiring strategist.\n"
@@ -66,7 +66,7 @@ def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: s
         raise Exception(f"AI Tailor failed: {str(e)}")
 
 
-def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
+def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model: str = "gpt-5.2") -> dict:
     """Generate cover letter JSON from resume and job description."""
     system_prompt = (
         "You write concise, high-converting cover letters for professional roles.\n"
@@ -119,7 +119,7 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
         raise Exception(f"Cover letter generation failed: {str(e)}")
 
 
-def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
+def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt-5.2") -> dict:
     """Analyze resume against job description and provide ATS score."""
     system_prompt = (
         "You are an ATS (Applicant Tracking System) analyzer.\n"
@@ -166,7 +166,7 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt
         raise Exception(f"ATS analysis failed: {str(e)}")
 
 
-def call_ai_improve_bullets(experience_bullets: list, job_description: str, model: str = "gpt-4o") -> list:
+def call_ai_improve_bullets(experience_bullets: list, job_description: str, model: str = "gpt-5.2") -> list:
     """Improve bullet points with STAR method and metrics."""
     system_prompt = (
         "You are an expert resume writer specializing in impactful bullet points.\n"
@@ -208,7 +208,7 @@ def call_ai_improve_bullets(experience_bullets: list, job_description: str, mode
         raise Exception(f"Bullet improvement failed: {str(e)}")
 
 
-def call_ai_extract_keywords(job_description: str, model: str = "gpt-4o") -> dict:
+def call_ai_extract_keywords(job_description: str, model: str = "gpt-5.2") -> dict:
     """Extract important keywords from job description."""
     system_prompt = (
         "Extract key information from the job description.\n"
@@ -248,7 +248,7 @@ def call_ai_extract_keywords(job_description: str, model: str = "gpt-4o") -> dic
         raise Exception(f"Keyword extraction failed: {str(e)}")
 
 
-def call_ai_rewrite_objective(current_objective: str, job_description: str, model: str = "gpt-4o") -> str:
+def call_ai_rewrite_objective(current_objective: str, job_description: str, model: str = "gpt-5.2") -> str:
     """Rewrite career objective for specific role."""
     system_prompt = (
         "Rewrite the career objective to be highly targeted to the job description.\n"
@@ -278,7 +278,7 @@ def call_ai_rewrite_objective(current_objective: str, job_description: str, mode
         raise Exception(f"Objective rewrite failed: {str(e)}")
 
 
-def call_ai_compress_resume(resume_json: dict, model: str = "gpt-4o") -> dict:
+def call_ai_compress_resume(resume_json: dict, model: str = "gpt-5.2") -> dict:
     """Intelligently compress resume to fit one page while maintaining impact."""
     system_prompt = (
         "You are an expert at condensing resumes to fit one page while maintaining maximum impact.\n\n"
@@ -309,7 +309,8 @@ def call_ai_compress_resume(resume_json: dict, model: str = "gpt-4o") -> dict:
         
         text = resp.choices[0].message.content.strip()
         text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
+        text = re.sub(r'\s*```
+, '', text)
         
         m = re.search(r'\{.*\}', text, flags=re.DOTALL)
         if m:
@@ -318,3 +319,51 @@ def call_ai_compress_resume(resume_json: dict, model: str = "gpt-4o") -> dict:
         return json.loads(text)
     except Exception as e:
         raise Exception(f"Resume compression failed: {str(e)}")
+
+
+def call_ai_improve_from_ats(resume_json: dict, ats_results: dict, job_description: str, model: str = "gpt-5.2") -> dict:
+    """Improve resume based on ATS analysis results."""
+    system_prompt = (
+        "You are a resume optimization expert. Based on the ATS analysis, improve the resume.\n\n"
+        "You will receive:\n"
+        "1. Current resume JSON\n"
+        "2. ATS analysis with scores, strengths, weaknesses, missing keywords\n"
+        "3. Job description\n\n"
+        "Your task:\n"
+        "- Address ALL weaknesses mentioned in ATS analysis\n"
+        "- Add ALL missing keywords naturally into relevant sections\n"
+        "- Improve sections with low scores\n"
+        "- Maintain truthfulness - enhance, don't fabricate\n"
+        "- Keep JSON structure identical\n"
+        "- Focus on maximizing ATS score while keeping content authentic\n\n"
+        "Return ONLY the improved resume JSON (no markdown, no explanations)."
+    )
+
+    user_prompt = json.dumps({
+        "resume_json": resume_json,
+        "ats_analysis": ats_results,
+        "job_description": job_description
+    }, ensure_ascii=False)
+
+    try:
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.6
+        )
+        
+        text = resp.choices[0].message.content.strip()
+        text = re.sub(r'^```json\s*', '', text)
+        text = re.sub(r'\s*```
+, '', text)
+        
+        m = re.search(r'\{.*\}', text, flags=re.DOTALL)
+        if m:
+            text = m.group(0)
+        
+        return json.loads(text)
+    except Exception as e:
+        raise Exception(f"ATS-based improvement failed: {str(e)}")
