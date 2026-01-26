@@ -149,9 +149,9 @@ def create_resume_pdf(json_path="resume_data.json",
     print(f"📝 Drew {exp_count} experience entries")
     
     # Education
+    y = new_page_if_needed(y)
     y = draw_section_title(c, "EDUCATION", left, y, size=10)  # Reduced from 11
-    y += .5
-                         # Reduced spacing
+    y -= 3  # Add space after title to prevent overlap
     
     col_gap = 0.6 * cm
     col_w = (content_w - col_gap) / 2
@@ -169,7 +169,7 @@ def create_resume_pdf(json_path="resume_data.json",
     while i < len(edu_items):
         if y < bottom + 4 * cm:
             c.showPage()
-            #draw_page_border(c, PAGE_W, PAGE_H)
+            draw_page_border(c, PAGE_W, PAGE_H)
             y = PAGE_H - top
         
         left_item = edu_items[i]
