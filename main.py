@@ -48,13 +48,39 @@ def main():
     
     with col_left:
         st.subheader("📝 Resume JSON Editor")
+        # Use a unique key that changes when content updates
+        editor_key = f"json_editor_{hash(st.session_state['edited_json'])}"
         edited_json = st.text_area(
             "Edit your resume data",
             value=st.session_state["edited_json"],
             height=400,
-            key="json_editor"
+            key=editor_key
         )
-        st.session_state["edited_json"] = edited_json
+        # Only update if user manually edited (not from AI)
+        if edited_json != st.session_state["edited_json"]:
+            st.session_state["edited_json"] = edited_json
+        
+        # Debug info / Character counter
+        char_count = len(st.session_state["edited_json"])
+        word_count = len(st.session_state["edited_json"].split())
+        line_count = st.session_state["edited_json"].count('\n') + 1
+        
+        debug_col1, debug_col2, debug_col3 = st.columns(3)
+        with debug_col1:
+            st.caption(f"📊 Characters: **{char_count:,}**")
+        with debug_col2:
+            st.caption(f"📝 Words: **{word_count:,}**")
+        with debug_col3:
+            st.caption(f"📄 Lines: **{line_count}**")
+        
+        # JSON validation indicator
+        try:
+            json.loads(st.session_state["edited_json"])
+            st.success("✅ Valid JSON", icon="✅")
+        except json.JSONDecodeError as e:
+            st.error(f"❌ Invalid JSON: {str(e)}", icon="❌")
+        
+        st.divider()
         
         # File naming
         default_name = f"Resume_{datetime.now().strftime('%Y%m%d_%H%M')}"
@@ -63,7 +89,7 @@ def main():
         cover_pdf = f"{safe_filename(out_name)}_CoverLetter.pdf"
     
     with col_right:
-        st.subheader("🎯 Job Description")
+        st.subheader("🎯 Job Description (for AI)")
         job_desc = st.text_area(
             "Paste the job description here",
             height=400,
