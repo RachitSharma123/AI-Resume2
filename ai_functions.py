@@ -1,11 +1,22 @@
 # ai_functions.py
 import json
+import os
 import re
+from functools import lru_cache
+
 from openai import OpenAI
 import streamlit as st
 
-# Initialize OpenAI client
-client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", ""))
+@lru_cache(maxsize=1)
+def get_openai_client() -> OpenAI:
+    """Create an OpenAI client without hard-failing if secrets are missing."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        try:
+            api_key = st.secrets.get("OPENAI_API_KEY")
+        except Exception:
+            api_key = None
+    return OpenAI(api_key=api_key or "")
 
 def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str = "gpt-5.2") -> dict:
     """Tailor resume to match job description with ATS optimization."""
@@ -41,6 +52,7 @@ def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: s
     }, ensure_ascii=False)
 
     try:
+        client = get_openai_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[
@@ -96,6 +108,7 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
     }, ensure_ascii=False)
 
     try:
+        client = get_openai_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[
@@ -144,6 +157,7 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt
     }, ensure_ascii=False)
 
     try:
+        client = get_openai_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[
@@ -186,6 +200,7 @@ def call_ai_improve_bullets(experience_bullets: list, job_description: str, mode
     }, ensure_ascii=False)
 
     try:
+        client = get_openai_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[
@@ -226,6 +241,7 @@ def call_ai_extract_keywords(job_description: str, model: str = "gpt-5.2") -> di
     )
 
     try:
+        client = get_openai_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[
@@ -264,6 +280,7 @@ def call_ai_rewrite_objective(current_objective: str, job_description: str, mode
     user_prompt = f"Current objective: {current_objective}\n\nJob description: {job_description}"
 
     try:
+        client = get_openai_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[
@@ -298,6 +315,7 @@ def call_ai_compress_resume(resume_json: dict, model: str = "gpt-5.2") -> dict:
     user_prompt = json.dumps({"resume_json": resume_json}, ensure_ascii=False)
 
     try:
+        client = get_openai_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[
@@ -309,8 +327,7 @@ def call_ai_compress_resume(resume_json: dict, model: str = "gpt-5.2") -> dict:
         
         text = resp.choices[0].message.content.strip()
         text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```
-, '', text)
+        text = re.sub(r'\s*```$', '', text)
         
         m = re.search(r'\{.*\}', text, flags=re.DOTALL)
         if m:
@@ -346,6 +363,7 @@ def call_ai_improve_from_ats(resume_json: dict, ats_results: dict, job_descripti
     }, ensure_ascii=False)
 
     try:
+        client = get_openai_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[
@@ -357,8 +375,7 @@ def call_ai_improve_from_ats(resume_json: dict, ats_results: dict, job_descripti
         
         text = resp.choices[0].message.content.strip()
         text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```
-, '', text)
+        text = re.sub(r'\s*```$', '', text)
         
         m = re.search(r'\{.*\}', text, flags=re.DOTALL)
         if m:
