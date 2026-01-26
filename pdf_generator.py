@@ -207,8 +207,8 @@ def create_resume_pdf(json_path="resume_data.json",
             c.drawString(left + 10, y, cert)
             y -= 10
         
-        y = draw_divider(c, left, left + content_w, y)
-        y -= 0
+        #y = draw_divider(c, left, left + content_w, y)
+        #y -= 0
         print(f"📝 Drew {len(certs)} certifications")
     
     # References
