@@ -2,56 +2,58 @@
   "name": "RACHIT SHARMA",
   "contact": "Melbourne, VIC | +61 0410 706 812 | sharmarachit923@gmail.com",
 
-  "career_objective": "Level 2 IT Helpdesk professional with strong experience supporting Microsoft-based environments across MSP, healthcare, education, and regulated enterprise settings. Skilled in troubleshooting complex incidents, supporting cloud and on-prem infrastructure, and delivering reliable, client-focused IT services. Brings hands-on exposure to Microsoft 365, Azure fundamentals, Windows Server, networking, and endpoint security. Seeking to contribute as a capable L2 technician within a growing regional MSP delivering high-quality managed IT services.",
+  "career_objective": "Data Analyst with a strong foundation in business analytics, data-driven decision-making, and hands-on experience working with structured datasets across healthcare, education, and enterprise environments. Proven ability to analyse, clean, and transform data to generate actionable insights using SQL, Python, and analytical frameworks. Experienced in working with stakeholders, translating business requirements into data solutions, and supporting reporting and performance analysis. Seeking a Data Analyst role where analytical rigor, business context, and measurable impact are valued.",
 
   "skills_snapshot": [
-    { "label": "L2 Service Desk Support", "value": "Incident & Problem Resolution, Escalation Handling, Root Cause Analysis, Client Follow-Ups" },
-    { "label": "Microsoft Technologies", "value": "Microsoft 365, Azure (Foundational), Active Directory, Group Policy, Windows Server" },
-    { "label": "Networking & Security", "value": "DNS, DHCP, VPNs, Firewall Concepts, Endpoint Protection, Backup Monitoring" },
-    { "label": "Infrastructure & Systems", "value": "Server Support, Patch Management, Endpoint Management, Infrastructure Refresh Support" },
-    { "label": "Projects & Deployments", "value": "User & Tenant Migrations, Device Rollouts, System Upgrades, Client Onboarding Support" }
+    { "label": "Data Analysis & Analytics", "value": "Data Cleaning, Data Transformation, Exploratory Data Analysis (EDA), KPI Tracking, Trend Analysis" },
+    { "label": "Programming & Querying", "value": "Python (Pandas, NumPy), SQL (Joins, CTEs, Aggregations), Basic Automation Scripts" },
+    { "label": "Business Intelligence", "value": "Data Reporting, Dashboard Requirements, Metrics Definition, Stakeholder Reporting" },
+    { "label": "Data & Systems", "value": "Relational Databases, Data Validation, Data Quality Checks, ETL Concepts" },
+    { "label": "Business & Domain Knowledge", "value": "Healthcare Operations, Education Systems, Process Analysis, Requirement Gathering" }
   ],
 
   "experience": [
     {
       "company": "Healthcare Australia",
-      "role_line": "ICT Service Desk Specialist (L2) | Melbourne, VIC | Nov 2024 – Present",
+      "role_line": "ICT Data-Focused Analyst | Melbourne, VIC | Nov 2024 – Present",
       "bullets": [
-        "Resolve escalated L2 incidents across Microsoft 365, Windows endpoints, and identity services in a regulated healthcare environment.",
-        "Administer Active Directory and Microsoft 365 user access, group policies, and device configurations.",
-        "Provide onsite and remote support for complex technical issues requiring advanced troubleshooting.",
-        "Support patching, endpoint compliance, and basic security controls in line with organisational policies.",
-        "Maintain high-quality documentation and contribute to knowledge base improvements."
+        "Analysed incident, request, and operational service data to identify recurring issues, trends, and improvement opportunities within a regulated healthcare environment.",
+        "Extracted and reviewed structured data from ticketing systems to support reporting on SLA performance, resolution times, and service quality metrics.",
+        "Collaborated with technical and non-technical stakeholders to translate operational pain points into data-backed insights and recommendations.",
+        "Maintained high-quality documentation and contributed to standardised reporting inputs to improve data consistency across teams.",
+        "Supported data-driven decision-making by validating data accuracy and ensuring compliance with organisational standards."
       ]
     },
     {
       "company": "Office Choice Ltd",
-      "role_line": "IT Support Analyst (L1/L2) | Melbourne, VIC | Dec 2023 – Nov 2024",
+      "role_line": "IT Support Analyst & Reporting Support | Melbourne, VIC | Dec 2023 – Nov 2024",
       "bullets": [
-        "Delivered L2 support across Microsoft 365, Windows Server-based services, and networked environments.",
-        "Troubleshot connectivity issues involving DNS, DHCP, VPN access, and firewall-related faults.",
-        "Assisted with infrastructure refreshes, hardware deployments, and system upgrades.",
-        "Worked closely with senior engineers to resolve complex incidents and infrastructure issues.",
-        "Supported client onboarding activities and maintained accurate ITSM documentation."
+        "Collected, cleaned, and analysed operational support data to assist with internal reporting and performance tracking.",
+        "Worked with structured datasets related to incidents, assets, and user environments to identify patterns and optimisation opportunities.",
+        "Assisted senior staff with preparing summaries and insights used for management reporting and service reviews.",
+        "Applied SQL-style logic and analytical thinking to troubleshoot data inconsistencies across systems.",
+        "Improved data documentation and process clarity, supporting more reliable reporting outputs."
       ]
     },
     {
       "company": "Melbourne Institute of Technology",
-      "role_line": "System Support Assistant (Contract) | Melbourne, VIC | Jul 2022 – Oct 2023",
+      "role_line": "System Programmer (Contract) | Melbourne, VIC | Jul 2022 – Oct 2023",
       "bullets": [
-        "Supported internal systems and applications across Windows and Microsoft-based environments.",
-        "Assisted with server-side issue investigation and application support.",
-        "Provided technical support to staff and students in a hybrid onsite/remote model.",
-        "Worked within ITSM workflows to manage incidents and service requests."
+        "Worked with system and application data to support analysis of operational performance and system usage.",
+        "Assisted in extracting data from internal systems to support reporting, audits, and management insights.",
+        "Applied analytical problem-solving to investigate system issues and identify root causes using data evidence.",
+        "Collaborated with academic and administrative stakeholders to align system data with business requirements.",
+        "Ensured data accuracy and consistency across reports through validation and structured checks."
       ]
     },
     {
       "company": "Emirates National Bank of Dubai",
-      "role_line": "Junior IT & Systems Support Consultant | Dubai | Jan 2021 – Oct 2022",
+      "role_line": "Junior IT & Data Support Consultant | Dubai | Jan 2021 – Oct 2022",
       "bullets": [
-        "Provided L1/L2 IT and application support within a highly regulated banking environment.",
-        "Supported enterprise users across Windows systems, applications, and secure environments.",
-        "Worked with infrastructure and security teams to escalate and resolve complex incidents."
+        "Supported data-related activities within a highly regulated banking environment, focusing on accuracy and compliance.",
+        "Assisted with analysis of application and operational data to support issue resolution and performance monitoring.",
+        "Worked closely with cross-functional teams to interpret business needs and support data-driven investigations.",
+        "Developed strong attention to detail and analytical discipline while working with sensitive enterprise data."
       ]
     }
   ],
@@ -59,7 +61,7 @@
   "education": [
     {
       "degree": "Master of Business Analytics",
-      "details": "Melbourne Institute of Technology, Australia "
+      "details": "Melbourne Institute of Technology, Australia"
     },
     {
       "degree": "Bachelor of Computer Science Engineering",
@@ -68,49 +70,39 @@
   ],
 
   "certifications": [
-    "Google IT Support Professional (Completed)",
-    "CompTIA ITF+ (Completed)",
-    "Microsoft Azure Fundamentals (Planned)",
-    "ITIL 4 Foundation (Planned)"
+    "AWS Concepts – Udemy",
+    "Python Programming – Udemy",
+    "Data Analysis with Python (Pandas & NumPy)",
+    "SQL Fundamentals (Oracle 11g)",
+    "Blockchain Fundamentals – Udemy"
   ],
 
   "additional_information": {
     "work_rights": "Full Australian work rights",
     "relocation": "Open to relocation for the right opportunity",
     "availability": "Full-time",
-    "career_path": "Long-term growth within MSP and infrastructure-focused roles"
+    "career_path": "Progression into senior data analyst, analytics consulting, or business intelligence roles"
   },
 
   "references": [
-    "Stephen Honey, Project Lead, Healthcare Australia | +61 0475 887 197",
-    "Shashank Pandey, Sr. Software Developer, Commonwealth Bank of Australia | +61 0452 539 671"
+    "References available upon request. Willing to relocate."
   ],
-  
- "cover_letter": {
-  "date": "AUTO",
-  "recipient": "Hiring Manager",
-  "company": "",
-  "role_title": "",
-  "company_address": "",
-  "subject": "Application for [Role Title] – Rachit Sharma",
-  "opening": "Dear Hiring Manager,",
-  "body_points": [
-    "Strong opening paragraph summary (intent + fit in 3–4 lines)",
-    "Key alignment paragraph with 2–3 quantified achievements/tools matching JD",
-    "Motivation paragraph (why this role/company + growth mindset)",
-    "Optional short 4th point if needed for length"
-  ],
-  "closing": "Kind regards,",
-  "signature_name": "Rachit Sharma",
-  "phone_number": "+61 0410 706 812",
-  "email": "sharmarachit923@gmail.com",
-  "word_count": 0
+
+  "cover_letter": {
+    "date": "AUTO",
+    "recipient": "Hiring Manager",
+    "company": "",
+    "role_title": "",
+    "company_address": "",
+    "subject": "Application for Data Analyst – Rachit Sharma",
+    "opening": "Dear Hiring Manager,",
+    "body_points": [
+      "Data analyst with a strong foundation in business analytics, data interpretation, and stakeholder-focused insights, supported by a Master of Business Analytics.",
+      "Hands-on experience analysing operational and system data using Python and SQL to identify trends, improve performance metrics, and support decision-making.",
+      "Strong interest in applying analytical skills to real-world business problems while continuously improving technical and domain expertise."
+    ],
+    "closing": "Kind regards,",
+    "signature_name": "Rachit Sharma",
+    "phone_number": "+61 0410 706 812"
+  }
 }
-
-}
-
-
-
-
-
-
