@@ -52,41 +52,41 @@ def create_resume_pdf(json_path="resume_data.json",
             return PAGE_H - top
         return ypos
     
-    # Header
+    # Header - reduced font sizes
     name = data.get("name", "YOUR NAME")
     contact = data.get("contact", "Location | Phone | Email")
     print(f"📝 Drawing Name: {name}")
     print(f"📝 Drawing Contact: {contact}")
     print(f"📝 Starting Y position: {y}")
     
-    c.setFont("Helvetica-Bold", 16)
+    c.setFont("Helvetica-Bold", 14)  # Reduced from 16
     c.drawString(left, y, name)
-    y -= 15
+    y -= 14  # Reduced spacing
     
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica", 8.5)  # Reduced from 9
     c.drawString(left, y, contact)
-    y -= 8
+    y -= 7
     print(f"📝 Y after header: {y}")
     
-    # Career Objective
+    # Career Objective - ONLY section that can wrap
     y = draw_divider(c, left, left + content_w, y)
     y -= 3
     y = new_page_if_needed(y)
     
-    y = draw_section_title(c, "CAREER OBJECTIVE", left, y, size=11)
+    y = draw_section_title(c, "CAREER OBJECTIVE", left, y, size=10)  # Reduced from 11
     
     objective = data.get("career_objective", "")
     print(f"📝 Career Objective length: {len(objective)} chars")
-    y = draw_wrapped_text(c, objective, left, y, content_w, font="Helvetica", size=10, leading=12)
-    y -= 10
+    y = draw_wrapped_text(c, objective, left, y, content_w, font="Helvetica", size=9.5, leading=11)  # Reduced sizes
+    y -= 8  # Reduced spacing
     print(f"📝 Y after objective: {y}")
     
-    # Skills Snapshot
+    # Skills Snapshot - Fixed width, no wrapping for labels
     y = new_page_if_needed(y)
-    y = draw_section_title(c, "SKILLS SNAPSHOT", left, y, size=11)
+    y = draw_section_title(c, "SKILLS SNAPSHOT", left, y, size=10)  # Reduced from 11
     
-    label_w = 4.2 * cm
-    gap = 0.6 * cm
+    label_w = 5.5 * cm  # Increased to fit longer labels on one line
+    gap = 0.4 * cm
     value_x = left + label_w + gap
     value_w = content_w - label_w - gap
     
@@ -96,34 +96,46 @@ def create_resume_pdf(json_path="resume_data.json",
         label = item.get("label", "")
         value = item.get("value", "")
         
-        c.setFont("Helvetica-Bold", 10)
+        # Draw label - NO WRAPPING, truncate if too long
+        c.setFont("Helvetica-Bold", 9.5)  # Reduced from 10
         c.drawString(left, y, label)
         
-        y = draw_wrapped_text(c, value, value_x, y, value_w, font="Helvetica", size=10, leading=12)
-        y -= 2
+        # Draw value on SAME LINE (no wrapping)
+        c.setFont("Helvetica", 9.5)  # Reduced from 10
+        c.drawString(value_x, y, value)
+        
+        y -= 11  # Reduced spacing
         skills_count += 1
     
     print(f"📝 Drew {skills_count} skills entries")
-    y -= 10
+    y -= 8  # Reduced spacing
     
     # Experience
     y = new_page_if_needed(y)
-    y = draw_section_title(c, "EXPERIENCE", left, y, size=11)
+    y = draw_section_title(c, "EXPERIENCE", left, y, size=10)  # Reduced from 11
     
     def exp_block(company, role_line, bullets):
         nonlocal y
         y = new_page_if_needed(y)
         
-        c.setFont("Helvetica-Bold", 10.5)
+        # Company name - single line, no wrapping
+        c.setFont("Helvetica-Bold", 10)  # Reduced from 10.5
         c.drawString(left, y, company)
-        y -= 13
+        y -= 12  # Reduced spacing
         
-        c.setFont("Helvetica-Bold", 10)
-        y = draw_wrapped_text(c, role_line, left, y, content_w, font="Helvetica-Bold", size=10, leading=12)
-        y -= 2
+        # Role line - single line, no wrapping
+        c.setFont("Helvetica-Bold", 9.5)  # Reduced from 10
+        c.drawString(left, y, role_line)
+        y -= 12  # Reduced spacing
         
-        y = draw_bullets(c, bullets, left, y, content_w, font="Helvetica", size=10, leading=12)
-        y -= 6
+        # Bullets - NO WRAPPING, each bullet is single line
+        c.setFont("Helvetica", 9)  # Reduced from 9.5
+        for bullet in bullets:
+            c.drawString(left, y, "•")
+            c.drawString(left + 10, y, bullet)
+            y -= 10  # Reduced spacing
+        
+        y -= 5  # Reduced spacing
     
     exp_count = 0
     for exp in (data.get("experience") or []):
@@ -137,18 +149,17 @@ def create_resume_pdf(json_path="resume_data.json",
     print(f"📝 Drew {exp_count} experience entries")
     
     # Education
-    y = draw_section_title(c, "EDUCATION", left, y, size=11)
-    y += 15
+    y = draw_section_title(c, "EDUCATION", left, y, size=10)  # Reduced from 11
+    y += 12  # Reduced spacing
     
     col_gap = 0.6 * cm
     col_w = (content_w - col_gap) / 2
     x1 = left
     x2 = left + col_w + col_gap
     
-    card_padding = 6
     font = "Helvetica"
-    size = 8.5
-    leading = 11
+    size = 8  # Reduced from 8.5
+    leading = 10  # Reduced from 11
     edu_items = data.get("education", []) or []
     
     print(f"📝 Drawing {len(edu_items)} education entries")
@@ -163,52 +174,39 @@ def create_resume_pdf(json_path="resume_data.json",
         left_item = edu_items[i]
         right_item = edu_items[i + 1] if (i + 1) < len(edu_items) else None
         
-        # Left card
-        left_lines = []
+        # Left card - NO WRAPPING, just single lines
+        c.setFont(font, size)
         deg = left_item.get("degree", "")
         det = left_item.get("details", "")
-        left_lines += wrap_lines(deg, col_w - 2 * card_padding, font=font, size=size)
-        left_lines += wrap_lines(det, col_w - 2 * card_padding, font=font, size=size)
         
-        # Right card
-        right_lines = []
+        # Draw left education (no box, just text)
+        c.drawString(x1, y, deg)
+        y_temp = y - leading
+        c.drawString(x1, y_temp, det)
+        
+        # Right card if exists
         if right_item:
             deg2 = right_item.get("degree", "")
             det2 = right_item.get("details", "")
-            right_lines += wrap_lines(deg2, col_w - 2 * card_padding, font=font, size=size)
-            right_lines += wrap_lines(det2, col_w - 2 * card_padding, font=font, size=size)
+            c.drawString(x2, y, deg2)
+            c.drawString(x2, y_temp, det2)
         
-        # Make cards same height
-        max_lines = max(len(left_lines), len(right_lines) if right_item else 0)
-        if len(left_lines) < max_lines:
-            left_lines += [""] * (max_lines - len(left_lines))
-        if right_item and len(right_lines) < max_lines:
-            right_lines += [""] * (max_lines - len(right_lines))
-        
-        # Draw cards
-        y_after_left, h_left = draw_boxed_block(
-            c, x1, y, col_w, left_lines,
-            padding=card_padding, font=font, size=size, leading=leading
-        )
-        
-        if right_item:
-            y_after_right, h_right = draw_boxed_block(
-                c, x2, y, col_w, right_lines,
-                padding=card_padding, font=font, size=size, leading=leading
-            )
-            row_height = max(h_left, h_right)
-        else:
-            row_height = h_left
-        
-        y = y - row_height - 10
+        y = y_temp - 12  # Reduced spacing
         i += 2
     
     # Certifications
     certs = data.get("certifications") or []
     if certs:
         y = new_page_if_needed(y)
-        y = draw_section_title(c, "CERTIFICATIONS", left, y, size=11)
-        y = draw_bullets(c, certs, left, y, content_w)
+        y = draw_section_title(c, "CERTIFICATIONS", left, y, size=10)  # Reduced from 11
+        
+        # Draw certifications as single lines (no wrapping)
+        c.setFont("Helvetica", 9)
+        for cert in certs:
+            c.drawString(left, y, "•")
+            c.drawString(left + 10, y, cert)
+            y -= 10
+        
         y = draw_divider(c, left, left + content_w, y)
         y -= 0
         print(f"📝 Drew {len(certs)} certifications")
@@ -217,11 +215,13 @@ def create_resume_pdf(json_path="resume_data.json",
     refs = data.get("references") or []
     if refs:
         y = new_page_if_needed(y)
-        y = draw_section_title(c, "REFERENCE", left, y-2, size=11)
+        y = draw_section_title(c, "REFERENCE", left, y-2, size=10)  # Reduced from 11
         for r in refs:
             y = new_page_if_needed(y)
-            y = draw_wrapped_text(c, r, left, y, content_w, font="Helvetica", size=8, leading=6)
-            y -= 4
+            # Single line reference, no wrapping
+            c.setFont("Helvetica", 7.5)  # Reduced from 8
+            c.drawString(left, y, r)
+            y -= 9  # Reduced spacing
         print(f"📝 Drew {len(refs)} references")
     
     c.save()
