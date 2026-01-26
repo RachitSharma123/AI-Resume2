@@ -76,16 +76,28 @@ def main():
         # JSON validation indicator
         try:
             parsed_data = json.loads(st.session_state["edited_json"])
+            
+            # Handle nested structure: {"resume_json": {...}}
+            if "resume_json" in parsed_data:
+                actual_data = parsed_data["resume_json"]
+                st.info("ℹ️ Nested JSON structure detected (resume_json wrapper)", icon="ℹ️")
+            else:
+                actual_data = parsed_data
+            
             st.success("✅ Valid JSON", icon="✅")
             
             # Show key fields for debugging
             with st.expander("🔍 Quick Preview"):
-                st.write("**Name:**", parsed_data.get("name", "❌ NOT FOUND"))
-                st.write("**Contact:**", parsed_data.get("contact", "❌ NOT FOUND"))
-                st.write("**Career Objective:**", parsed_data.get("career_objective", "❌ NOT FOUND")[:100] + "...")
-                st.write("**Experience entries:**", len(parsed_data.get("experience", [])))
-                st.write("**Education entries:**", len(parsed_data.get("education", [])))
-                st.write("**Skills entries:**", len(parsed_data.get("skills_snapshot", [])))
+                st.write("**Name:**", actual_data.get("name", "❌ NOT FOUND"))
+                st.write("**Contact:**", actual_data.get("contact", "❌ NOT FOUND"))
+                career_obj = actual_data.get("career_objective", "❌ NOT FOUND")
+                if career_obj != "❌ NOT FOUND":
+                    st.write("**Career Objective:**", career_obj[:100] + "...")
+                else:
+                    st.write("**Career Objective:**", career_obj)
+                st.write("**Experience entries:**", len(actual_data.get("experience", [])))
+                st.write("**Education entries:**", len(actual_data.get("education", [])))
+                st.write("**Skills entries:**", len(actual_data.get("skills_snapshot", [])))
         except json.JSONDecodeError as e:
             st.error(f"❌ Invalid JSON: {str(e)}", icon="❌")
         
@@ -98,7 +110,7 @@ def main():
         cover_pdf = f"{safe_filename(out_name)}_CoverLetter.pdf"
     
     with col_right:
-        st.subheader("🎯 Job Description (for AI)")
+        st.subheader("🎯 Job Description")
         job_desc = st.text_area(
             "Paste the job description here",
             height=400,
