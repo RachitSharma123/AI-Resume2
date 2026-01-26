@@ -168,7 +168,7 @@ def create_resume_pdf(json_path="resume_data.json",
     while i < len(edu_items):
         if y < bottom + 4 * cm:
             c.showPage()
-            draw_page_border(c, PAGE_W, PAGE_H)
+            #draw_page_border(c, PAGE_W, PAGE_H)
             y = PAGE_H - top
         
         left_item = edu_items[i]
@@ -207,8 +207,8 @@ def create_resume_pdf(json_path="resume_data.json",
             c.drawString(left + 10, y, cert)
             y -= 10
         
-        #y = draw_divider(c, left, left + content_w, y)
-        #y -= 0
+        y = draw_divider(c, left, left + content_w, y)
+        y -= 0
         print(f"📝 Drew {len(certs)} certifications")
     
     # References
