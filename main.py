@@ -19,13 +19,231 @@ from ai_functions import (
     call_ai_improve_from_ats
 )
 
+def render_job_tracker():
+    """Render the job tracker interface."""
+    st.header("📊 Job Application Tracker")
+    st.caption("Track all your applications in Google Sheets")
+    
+    # Initialize session state for sheet ID
+    if "sheet_id" not in st.session_state:
+        st.session_state["sheet_id"] = ""
+    
+    # Configuration section
+    with st.expander("⚙️ Google Sheets Configuration", expanded=not st.session_state.get("sheet_id")):
+        sheet_id_input = st.text_input(
+            "Google Sheet ID (leave empty to create new)",
+            value=st.session_state.get("sheet_id", ""),
+            help="Find this in your Google Sheets URL: docs.google.com/spreadsheets/d/SHEET_ID_HERE/edit"
+        )
+        
+        if sheet_id_input != st.session_state.get("sheet_id", ""):
+            st.session_state["sheet_id"] = sheet_id_input
+        
+        if st.button("🔗 Connect to Google Sheets"):
+            try:
+                from google_sheets_integration import get_google_sheets_client, get_or_create_tracker
+                
+                client = get_google_sheets_client()
+                if client:
+                    spreadsheet, worksheet = get_or_create_tracker(client, st.session_state.get("sheet_id"))
+                    st.session_state["spreadsheet"] = spreadsheet
+                    st.session_state["worksheet"] = worksheet
+                    st.session_state["sheet_id"] = spreadsheet.id
+                    st.success(f"✅ Connected to tracker!")
+                    st.info(f"🔗 Sheet URL: {spreadsheet.url}")
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
+    
+    # Check if connected
+    if "worksheet" not in st.session_state:
+        st.warning("⚠️ Please connect to Google Sheets first (expand section above)")
+        return
+    
+    # Tabs for different views
+    tab1, tab2, tab3 = st.tabs(["➕ Add Application", "📋 View Applications", "📈 Statistics"])
+    
+    # TAB 1: Add New Application
+    with tab1:
+        st.subheader("Add New Job Application")
+        
+        with st.form("add_application_form"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                company = st.text_input("Company Name *", placeholder="e.g., Google")
+                position = st.text_input("Position *", placeholder="e.g., Software Engineer")
+                job_url = st.text_input("Job URL", placeholder="https://...")
+                status = st.selectbox("Status", [
+                    "Applied", "Screening", "Phone Interview",
+                    "Technical Interview", "Final Interview",
+                    "Offer Received", "Rejected", "Withdrawn"
+                ])
+            
+            with col2:
+                ats_score = st.text_input("ATS Score", placeholder="e.g., 85%")
+                contact_person = st.text_input("Contact Person", placeholder="e.g., John Smith")
+                contact_email = st.text_input("Contact Email", placeholder="recruiter@company.com")
+                follow_up_date = st.date_input("Follow-up Date", value=None)
+            
+            resume_version = st.text_input("Resume Version", placeholder="e.g., Resume_Tech_v2.pdf")
+            has_cover_letter = st.checkbox("Cover Letter Sent")
+            notes = st.text_area("Notes", placeholder="Add any additional notes...")
+            
+            submitted = st.form_submit_button("➕ Add Application", use_container_width=True)
+            
+            if submitted:
+                if not company or not position:
+                    st.error("❌ Company and Position are required!")
+                else:
+                    try:
+                        from google_sheets_integration import add_job_application
+                        
+                        application_data = {
+                            "company": company,
+                            "position": position,
+                            "job_url": job_url,
+                            "status": status,
+                            "ats_score": ats_score,
+                            "contact_person": contact_person,
+                            "contact_email": contact_email,
+                            "follow_up_date": str(follow_up_date) if follow_up_date else "",
+                            "notes": notes,
+                            "resume_version": resume_version,
+                            "has_cover_letter": "Yes" if has_cover_letter else "No"
+                        }
+                        
+                        add_job_application(st.session_state["worksheet"], application_data)
+                        st.success(f"✅ Added application for {position} at {company}!")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
+    
+    # TAB 2: View Applications
+    with tab2:
+        st.subheader("Your Job Applications")
+        
+        try:
+            from google_sheets_integration import get_all_applications, search_applications
+            
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                search_term = st.text_input("🔍 Search by company or position", placeholder="Type to search...")
+            with col2:
+                if st.button("🔄 Refresh", use_container_width=True):
+                    st.rerun()
+            
+            applications = get_all_applications(st.session_state["worksheet"])
+            
+            if search_term:
+                applications = search_applications(applications, search_term)
+            
+            if not applications:
+                st.info("📭 No applications yet. Add your first one in the 'Add Application' tab!")
+            else:
+                st.write(f"**Total:** {len(applications)} applications")
+                
+                for idx, app in enumerate(reversed(applications)):
+                    with st.expander(f"{app.get('Company', 'N/A')} - {app.get('Position', 'N/A')} ({app.get('Status', 'N/A')})"):
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.write("**Date Applied:**", app.get("Date Applied", "N/A"))
+                            st.write("**Company:**", app.get("Company", "N/A"))
+                            st.write("**Position:**", app.get("Position", "N/A"))
+                            if app.get("Job URL"):
+                                st.write("**Job URL:**", app.get("Job URL"))
+                            st.write("**Status:**", app.get("Status", "N/A"))
+                        
+                        with col2:
+                            st.write("**ATS Score:**", app.get("ATS Score", "N/A"))
+                            st.write("**Contact:**", app.get("Contact Person", "N/A"))
+                            if app.get("Contact Email"):
+                                st.write("**Email:**", app.get("Contact Email"))
+                            st.write("**Follow-up:**", app.get("Follow-up Date", "N/A"))
+                            st.write("**Cover Letter:**", app.get("Cover Letter", "N/A"))
+                        
+                        if app.get("Notes"):
+                            st.write("**Notes:**", app.get("Notes"))
+                        
+                        new_status = st.selectbox(
+                            "Update Status:",
+                            ["Applied", "Screening", "Phone Interview",
+                             "Technical Interview", "Final Interview",
+                             "Offer Received", "Rejected", "Withdrawn"],
+                            index=0,
+                            key=f"status_{idx}"
+                        )
+                        
+                        if st.button("Update", key=f"update_{idx}"):
+                            try:
+                                from google_sheets_integration import update_application_status
+                                row_num = len(applications) - idx + 1
+                                update_application_status(st.session_state["worksheet"], row_num, new_status)
+                                st.success("✅ Status updated!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"❌ Error: {str(e)}")
+        
+        except Exception as e:
+            st.error(f"❌ Error loading applications: {str(e)}")
+    
+    # TAB 3: Statistics
+    with tab3:
+        st.subheader("Application Statistics")
+        
+        try:
+            from google_sheets_integration import get_all_applications, get_statistics
+            
+            applications = get_all_applications(st.session_state["worksheet"])
+            stats = get_statistics(applications)
+            
+            metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+            
+            with metric_col1:
+                st.metric("Total Applications", stats["total"])
+            with metric_col2:
+                st.metric("Waiting Response", stats["applied"])
+            with metric_col3:
+                st.metric("Interviewing", stats["interviewing"])
+            with metric_col4:
+                st.metric("Offers", stats["offered"], delta=stats["offered"] if stats["offered"] > 0 else None)
+            
+            st.progress(stats["response_rate"] / 100)
+            st.write(f"**Response Rate:** {stats['response_rate']}%")
+            
+            if applications:
+                st.subheader("Status Breakdown")
+                status_counts = {}
+                for app in applications:
+                    status = app.get("Status", "Unknown")
+                    status_counts[status] = status_counts.get(status, 0) + 1
+                
+                for status, count in sorted(status_counts.items(), key=lambda x: x[1], reverse=True):
+                    st.write(f"**{status}:** {count}")
+        
+        except Exception as e:
+            st.error(f"❌ Error loading statistics: {str(e)}")
+
+
 def main():
     """Main Streamlit application with AI features"""
     st.set_page_config(page_title="AI Resume Generator", page_icon="📄", layout="wide")
     
     st.title("🤖 AI-Powered Resume Generator")
-    st.caption("Edit JSON → Use AI Features → Generate PDF → Download")
+    st.caption("Edit JSON → Use AI Features → Generate PDF → Track Applications")
     
+    # Sidebar navigation
+    page = st.sidebar.radio(
+        "Navigation",
+        ["📄 Resume Builder", "📊 Job Tracker"],
+        index=0
+    )
+    
+    if page == "📊 Job Tracker":
+        render_job_tracker()
+        return
+    
+    # Rest of your existing code for Resume Builder
     # Load JSON data
     JSON_PATH = Path("resume_data.json")
     if not JSON_PATH.exists():
