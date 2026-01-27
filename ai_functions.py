@@ -9,68 +9,27 @@ from typing import Optional
 from openai import OpenAI
 import streamlit as st
 
-def _strip_trailing_commas(text: str) -> str:
-    return re.sub(r",\s*([}\]])", r"\1", text)
-
-
-def _extract_json_object(text: str) -> Optional[str]:
-    in_string = False
-    escape = False
-    depth = 0
-    start_index = None
-
-    for index, char in enumerate(text):
-        if char == "\\" and in_string:
-            escape = not escape
-            continue
-        if char == "\"" and not escape:
-            in_string = not in_string
-        escape = False
-
-        if in_string:
-            continue
-
-        if char == "{":
-            if depth == 0:
-                start_index = index
-            depth += 1
-        elif char == "}" and depth:
-            depth -= 1
-            if depth == 0 and start_index is not None:
-                return text[start_index:index + 1]
-    return None
-
-
 def _parse_ai_json(text: str) -> dict:
     cleaned = text.strip()
     cleaned = re.sub(r'^```json\s*', '', cleaned)
     cleaned = re.sub(r'\s*```$', '', cleaned)
-    cleaned = re.sub(r"//.*", "", cleaned)
-    cleaned = re.sub(r"/\*.*?\*/", "", cleaned, flags=re.DOTALL)
+
+    m = re.search(r'\{.*\}', cleaned, flags=re.DOTALL)
+    if m:
+        cleaned = m.group(0)
+
     cleaned = cleaned.replace("“", "\"").replace("”", "\"").replace("’", "'")
 
-    extracted = _extract_json_object(cleaned)
-    if extracted:
-        cleaned = extracted
-
-    cleaned = _strip_trailing_commas(cleaned)
-
     try:
-        data = json.loads(cleaned)
+        return json.loads(cleaned)
     except json.JSONDecodeError:
         pythonish = re.sub(r"\btrue\b", "True", cleaned, flags=re.IGNORECASE)
         pythonish = re.sub(r"\bfalse\b", "False", pythonish, flags=re.IGNORECASE)
         pythonish = re.sub(r"\bnull\b", "None", pythonish, flags=re.IGNORECASE)
-        pythonish = _strip_trailing_commas(pythonish)
-        try:
-            data = ast.literal_eval(pythonish)
-        except (ValueError, SyntaxError) as exc:
-            snippet = cleaned[:200].replace("\n", " ")
-            raise ValueError(f"Unable to parse AI JSON response: {snippet}") from exc
-
-    if not isinstance(data, dict):
-        raise ValueError("Parsed AI response is not a JSON object.")
-    return data
+        data = ast.literal_eval(pythonish)
+        if not isinstance(data, dict):
+            raise ValueError("Parsed AI response is not a JSON object.")
+        return data
 
 @lru_cache(maxsize=1)
 def get_openai_client() -> OpenAI:
