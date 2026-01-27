@@ -1,11 +1,76 @@
 # ai_functions.py
+import ast
 import json
 import os
 import re
 from functools import lru_cache
+from typing import Optional
 
 from openai import OpenAI
 import streamlit as st
+
+def _strip_trailing_commas(text: str) -> str:
+    return re.sub(r",\s*([}\]])", r"\1", text)
+
+
+def _extract_json_object(text: str) -> Optional[str]:
+    in_string = False
+    escape = False
+    depth = 0
+    start_index = None
+
+    for index, char in enumerate(text):
+        if char == "\\" and in_string:
+            escape = not escape
+            continue
+        if char == "\"" and not escape:
+            in_string = not in_string
+        escape = False
+
+        if in_string:
+            continue
+
+        if char == "{":
+            if depth == 0:
+                start_index = index
+            depth += 1
+        elif char == "}" and depth:
+            depth -= 1
+            if depth == 0 and start_index is not None:
+                return text[start_index:index + 1]
+    return None
+
+
+def _parse_ai_json(text: str) -> dict:
+    cleaned = text.strip()
+    cleaned = re.sub(r'^```json\s*', '', cleaned)
+    cleaned = re.sub(r'\s*```$', '', cleaned)
+    cleaned = re.sub(r"//.*", "", cleaned)
+    cleaned = re.sub(r"/\*.*?\*/", "", cleaned, flags=re.DOTALL)
+    cleaned = cleaned.replace("“", "\"").replace("”", "\"").replace("’", "'")
+
+    extracted = _extract_json_object(cleaned)
+    if extracted:
+        cleaned = extracted
+
+    cleaned = _strip_trailing_commas(cleaned)
+
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        pythonish = re.sub(r"\btrue\b", "True", cleaned, flags=re.IGNORECASE)
+        pythonish = re.sub(r"\bfalse\b", "False", pythonish, flags=re.IGNORECASE)
+        pythonish = re.sub(r"\bnull\b", "None", pythonish, flags=re.IGNORECASE)
+        pythonish = _strip_trailing_commas(pythonish)
+        try:
+            data = ast.literal_eval(pythonish)
+        except (ValueError, SyntaxError) as exc:
+            snippet = cleaned[:200].replace("\n", " ")
+            raise ValueError(f"Unable to parse AI JSON response: {snippet}") from exc
+
+    if not isinstance(data, dict):
+        raise ValueError("Parsed AI response is not a JSON object.")
+    return data
 
 @lru_cache(maxsize=1)
 def get_openai_client() -> OpenAI:
@@ -167,15 +232,8 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt
             temperature=0.3
         )
         
-        text = resp.choices[0].message.content.strip()
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
-        
-        m = re.search(r'\{.*\}', text, flags=re.DOTALL)
-        if m:
-            text = m.group(0)
-        
-        return json.loads(text)
+        text = resp.choices[0].message.content
+        return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"ATS analysis failed: {str(e)}")
 
@@ -251,15 +309,8 @@ def call_ai_extract_keywords(job_description: str, model: str = "gpt-5.2") -> di
             temperature=0.3
         )
         
-        text = resp.choices[0].message.content.strip()
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
-        
-        m = re.search(r'\{.*\}', text, flags=re.DOTALL)
-        if m:
-            text = m.group(0)
-        
-        return json.loads(text)
+        text = resp.choices[0].message.content
+        return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"Keyword extraction failed: {str(e)}")
 
@@ -325,15 +376,8 @@ def call_ai_compress_resume(resume_json: dict, model: str = "gpt-5.2") -> dict:
             temperature=0.5
         )
         
-        text = resp.choices[0].message.content.strip()
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
-        
-        m = re.search(r'\{.*\}', text, flags=re.DOTALL)
-        if m:
-            text = m.group(0)
-        
-        return json.loads(text)
+        text = resp.choices[0].message.content
+        return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"Resume compression failed: {str(e)}")
 
@@ -373,14 +417,7 @@ def call_ai_improve_from_ats(resume_json: dict, ats_results: dict, job_descripti
             temperature=0.6
         )
         
-        text = resp.choices[0].message.content.strip()
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
-        
-        m = re.search(r'\{.*\}', text, flags=re.DOTALL)
-        if m:
-            text = m.group(0)
-        
-        return json.loads(text)
+        text = resp.choices[0].message.content
+        return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"ATS-based improvement failed: {str(e)}")
