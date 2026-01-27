@@ -20,7 +20,14 @@ from ai_functions import (
 )
 
 # Import Google Sheets functions at the top
+GOOGLE_SHEETS_AVAILABLE = False
+GOOGLE_SHEETS_ERROR = None
+
 try:
+    import gspread
+    from google.oauth2.service_account import Credentials
+    print("✅ gspread and google-auth packages found")
+    
     from google_sheets_integration import (
         get_google_sheets_client,
         get_or_create_tracker,
@@ -31,15 +38,45 @@ try:
         search_applications
     )
     GOOGLE_SHEETS_AVAILABLE = True
+    print("✅ google_sheets_integration.py imported successfully")
 except ImportError as e:
-    GOOGLE_SHEETS_AVAILABLE = False
-    print(f"Google Sheets not available: {e}")  # Only print to console, not to UI yet
+    GOOGLE_SHEETS_ERROR = str(e)
+    print(f"❌ Import error: {e}")
+except Exception as e:
+    GOOGLE_SHEETS_ERROR = str(e)
+    print(f"❌ Other error: {e}")
 
 def render_job_tracker():
     """Render the job tracker interface."""
     if not GOOGLE_SHEETS_AVAILABLE:
         st.error("❌ Google Sheets integration not available!")
-        st.info("Install required packages: `pip install gspread google-auth`")
+        if GOOGLE_SHEETS_ERROR:
+            st.error(f"Error details: {GOOGLE_SHEETS_ERROR}")
+        st.info("📋 Debugging info:")
+        st.code(f"GOOGLE_SHEETS_AVAILABLE = {GOOGLE_SHEETS_AVAILABLE}")
+        st.code(f"Error: {GOOGLE_SHEETS_ERROR}")
+        
+        # Check if file exists
+        import os
+        if os.path.exists("google_sheets_integration.py"):
+            st.success("✅ google_sheets_integration.py file exists")
+        else:
+            st.error("❌ google_sheets_integration.py file NOT found!")
+            st.warning("Create the file google_sheets_integration.py in the same folder as main.py")
+        
+        # Check if packages are installed
+        try:
+            import gspread
+            st.success("✅ gspread package installed")
+        except:
+            st.error("❌ gspread package NOT installed")
+        
+        try:
+            from google.oauth2.service_account import Credentials
+            st.success("✅ google-auth package installed")
+        except:
+            st.error("❌ google-auth package NOT installed")
+        
         return
     
     st.header("📊 Job Application Tracker")
