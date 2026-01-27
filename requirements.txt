@@ -3,3 +3,5 @@ openai>=1.12.0
 reportlab>=4.0
 python-dateutil>=2.8
 pathlib
+gspread
+google-auth
