@@ -19,8 +19,29 @@ from ai_functions import (
     call_ai_improve_from_ats
 )
 
+# Import Google Sheets functions at the top
+try:
+    from google_sheets_integration import (
+        get_google_sheets_client,
+        get_or_create_tracker,
+        add_job_application,
+        get_all_applications,
+        update_application_status,
+        get_statistics,
+        search_applications
+    )
+    GOOGLE_SHEETS_AVAILABLE = True
+except ImportError:
+    GOOGLE_SHEETS_AVAILABLE = False
+    st.warning("⚠️ Google Sheets integration not available. Install: pip install gspread google-auth")
+
 def render_job_tracker():
     """Render the job tracker interface."""
+    if not GOOGLE_SHEETS_AVAILABLE:
+        st.error("❌ Google Sheets integration not available!")
+        st.info("Install required packages: `pip install gspread google-auth`")
+        return
+    
     st.header("📊 Job Application Tracker")
     st.caption("Track all your applications in Google Sheets")
     
@@ -41,8 +62,6 @@ def render_job_tracker():
         
         if st.button("🔗 Connect to Google Sheets"):
             try:
-                from google_sheets_integration import get_google_sheets_client, get_or_create_tracker
-                
                 client = get_google_sheets_client()
                 if client:
                     spreadsheet, worksheet = get_or_create_tracker(client, st.session_state.get("sheet_id"))
@@ -96,8 +115,6 @@ def render_job_tracker():
                     st.error("❌ Company and Position are required!")
                 else:
                     try:
-                        from google_sheets_integration import add_job_application
-                        
                         application_data = {
                             "company": company,
                             "position": position,
@@ -123,8 +140,6 @@ def render_job_tracker():
         st.subheader("Your Job Applications")
         
         try:
-            from google_sheets_integration import get_all_applications, search_applications
-            
             col1, col2 = st.columns([3, 1])
             with col1:
                 search_term = st.text_input("🔍 Search by company or position", placeholder="Type to search...")
@@ -176,7 +191,6 @@ def render_job_tracker():
                         
                         if st.button("Update", key=f"update_{idx}"):
                             try:
-                                from google_sheets_integration import update_application_status
                                 row_num = len(applications) - idx + 1
                                 update_application_status(st.session_state["worksheet"], row_num, new_status)
                                 st.success("✅ Status updated!")
@@ -192,8 +206,6 @@ def render_job_tracker():
         st.subheader("Application Statistics")
         
         try:
-            from google_sheets_integration import get_all_applications, get_statistics
-            
             applications = get_all_applications(st.session_state["worksheet"])
             stats = get_statistics(applications)
             
