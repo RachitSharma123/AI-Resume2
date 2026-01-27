@@ -47,41 +47,18 @@ except Exception as e:
     GOOGLE_SHEETS_ERROR = str(e)
     print(f"❌ Other error: {e}")
 
+# Add this new function to main.py (replace the render_job_tracker function)
+
 def render_job_tracker():
-    """Render the job tracker interface."""
+    """Render the automated AI-powered job tracker interface."""
     if not GOOGLE_SHEETS_AVAILABLE:
         st.error("❌ Google Sheets integration not available!")
         if GOOGLE_SHEETS_ERROR:
             st.error(f"Error details: {GOOGLE_SHEETS_ERROR}")
-        st.info("📋 Debugging info:")
-        st.code(f"GOOGLE_SHEETS_AVAILABLE = {GOOGLE_SHEETS_AVAILABLE}")
-        st.code(f"Error: {GOOGLE_SHEETS_ERROR}")
-        
-        # Check if file exists
-        import os
-        if os.path.exists("google_sheets_integration.py"):
-            st.success("✅ google_sheets_integration.py file exists")
-        else:
-            st.error("❌ google_sheets_integration.py file NOT found!")
-            st.warning("Create the file google_sheets_integration.py in the same folder as main.py")
-        
-        # Check if packages are installed
-        try:
-            import gspread
-            st.success("✅ gspread package installed")
-        except:
-            st.error("❌ gspread package NOT installed")
-        
-        try:
-            from google.oauth2.service_account import Credentials
-            st.success("✅ google-auth package installed")
-        except:
-            st.error("❌ google-auth package NOT installed")
-        
         return
     
-    st.header("📊 Job Application Tracker")
-    st.caption("Track all your applications in Google Sheets")
+    st.header("🤖 AI-Powered Job Application Tracker")
+    st.caption("Paste job URL → AI extracts everything → Auto-saves to Google Sheets")
     
     # Initialize session state for sheet ID
     if "sheet_id" not in st.session_state:
@@ -90,9 +67,9 @@ def render_job_tracker():
     # Configuration section
     with st.expander("⚙️ Google Sheets Configuration", expanded=not st.session_state.get("sheet_id")):
         sheet_id_input = st.text_input(
-            "Google Sheet ID (leave empty to create new)",
+            "Google Sheet ID (paste from your manually created sheet)",
             value=st.session_state.get("sheet_id", ""),
-            help="Find this in your Google Sheets URL: docs.google.com/spreadsheets/d/SHEET_ID_HERE/edit"
+            help="Create sheet manually at sheets.google.com, share with: job-tracker-service@job-thing-485602.iam.gserviceaccount.com"
         )
         
         if sheet_id_input != st.session_state.get("sheet_id", ""):
@@ -116,64 +93,142 @@ def render_job_tracker():
         st.warning("⚠️ Please connect to Google Sheets first (expand section above)")
         return
     
-    # Tabs for different views
-    tab1, tab2, tab3 = st.tabs(["➕ Add Application", "📋 View Applications", "📈 Statistics"])
+    # Main tabs
+    tab1, tab2, tab3 = st.tabs(["🚀 Quick Add (AI-Powered)", "📋 View Applications", "📈 Statistics"])
     
-    # TAB 1: Add New Application
+    # ==================== TAB 1: AI-POWERED QUICK ADD ====================
     with tab1:
-        st.subheader("Add New Job Application")
+        st.subheader("🤖 AI-Powered Application Tracker")
+        st.info("Paste job URL → AI extracts all info → Auto-calculates ATS score → Saves to sheet!")
         
-        with st.form("add_application_form"):
+        # Get current resume JSON
+        try:
+            raw_data = json.loads(st.session_state.get("edited_json", "{}"))
+            if "resume_json" in raw_data:
+                current_resume = raw_data["resume_json"]
+            else:
+                current_resume = raw_data
+            
+            has_resume = bool(current_resume.get("name"))
+        except:
+            has_resume = False
+        
+        if not has_resume:
+            st.warning("⚠️ No resume loaded. Go to Resume Builder first to load your resume JSON.")
+            return
+        
+        st.success(f"✅ Using resume for: {current_resume.get('name', 'N/A')}")
+        
+        # Job URL input
+        job_url = st.text_input(
+            "📎 Job Posting URL *",
+            placeholder="https://company.com/careers/job-id",
+            help="Paste the full URL of the job posting"
+        )
+        
+        # Manual overrides (optional)
+        with st.expander("🔧 Manual Overrides (Optional)", expanded=False):
             col1, col2 = st.columns(2)
-            
             with col1:
-                company = st.text_input("Company Name *", placeholder="e.g., Google")
-                position = st.text_input("Position *", placeholder="e.g., Software Engineer")
-                job_url = st.text_input("Job URL", placeholder="https://...")
-                status = st.selectbox("Status", [
-                    "Applied", "Screening", "Phone Interview",
-                    "Technical Interview", "Final Interview",
-                    "Offer Received", "Rejected", "Withdrawn"
-                ])
-            
+                override_company = st.text_input("Company (leave empty for AI to extract)", "")
+                override_position = st.text_input("Position (leave empty for AI to extract)", "")
             with col2:
-                ats_score = st.text_input("ATS Score", placeholder="e.g., 85%")
-                contact_person = st.text_input("Contact Person", placeholder="e.g., John Smith")
-                contact_email = st.text_input("Contact Email", placeholder="recruiter@company.com")
-                follow_up_date = st.date_input("Follow-up Date", value=None)
+                override_contact = st.text_input("Contact Person", "")
+                override_email = st.text_input("Contact Email", "")
             
-            resume_version = st.text_input("Resume Version", placeholder="e.g., Resume_Tech_v2.pdf")
-            has_cover_letter = st.checkbox("Cover Letter Sent")
-            notes = st.text_area("Notes", placeholder="Add any additional notes...")
-            
-            submitted = st.form_submit_button("➕ Add Application", use_container_width=True)
-            
-            if submitted:
-                if not company or not position:
-                    st.error("❌ Company and Position are required!")
-                else:
+            additional_notes = st.text_area("Additional Notes", "")
+        
+        # Status selection
+        status = st.selectbox(
+            "📊 Application Status",
+            ["Applied", "Screening", "Phone Interview", "Technical Interview", 
+             "Final Interview", "Offer Received", "Rejected", "Withdrawn"],
+            index=0
+        )
+        
+        # Big submit button
+        if st.button("🚀 Process & Save Application", type="primary", use_container_width=True):
+            if not job_url:
+                st.error("❌ Please provide a job posting URL!")
+            else:
+                with st.spinner("🤖 AI is processing the job posting..."):
                     try:
+                        # Step 1: Fetch and extract job details
+                        st.info("📥 Step 1/4: Fetching job posting...")
+                        job_details = extract_job_details_from_url(job_url)
+                        
+                        company = override_company or job_details.get("company", "Unknown Company")
+                        position = override_position or job_details.get("position", "Unknown Position")
+                        job_description = job_details.get("description", "")
+                        
+                        st.success(f"✅ Extracted: {position} at {company}")
+                        
+                        # Step 2: Calculate ATS Score
+                        st.info("🎯 Step 2/4: Calculating ATS score...")
+                        ats_results = call_ai_ats_score(current_resume, job_description)
+                        ats_score = f"{ats_results.get('ats_score', 0)}%"
+                        
+                        st.success(f"✅ ATS Score: {ats_score}")
+                        
+                        # Step 3: Generate resume version name
+                        st.info("📄 Step 3/4: Creating resume version...")
+                        resume_version = f"{safe_filename(company)}_{safe_filename(position)}_{datetime.now().strftime('%Y%m%d')}.pdf"
+                        
+                        # Step 4: Save to Google Sheets
+                        st.info("💾 Step 4/4: Saving to Google Sheets...")
+                        
                         application_data = {
                             "company": company,
                             "position": position,
                             "job_url": job_url,
                             "status": status,
                             "ats_score": ats_score,
-                            "contact_person": contact_person,
-                            "contact_email": contact_email,
-                            "follow_up_date": str(follow_up_date) if follow_up_date else "",
-                            "notes": notes,
+                            "contact_person": override_contact or "",
+                            "contact_email": override_email or "",
+                            "follow_up_date": "",
+                            "notes": additional_notes or f"ATS Analysis: {', '.join(ats_results.get('strengths', [])[:2])}",
                             "resume_version": resume_version,
-                            "has_cover_letter": "Yes" if has_cover_letter else "No"
+                            "has_cover_letter": "No"
                         }
                         
                         add_job_application(st.session_state["worksheet"], application_data)
-                        st.success(f"✅ Added application for {position} at {company}!")
+                        
+                        st.success("🎉 Application tracked successfully!")
                         st.balloons()
+                        
+                        # Show summary
+                        st.divider()
+                        st.subheader("📊 Application Summary")
+                        
+                        sum_col1, sum_col2 = st.columns(2)
+                        with sum_col1:
+                            st.metric("Company", company)
+                            st.metric("Position", position)
+                            st.metric("ATS Score", ats_score)
+                        
+                        with sum_col2:
+                            st.metric("Status", status)
+                            st.metric("Resume Version", resume_version)
+                            st.write("**Strengths:**")
+                            for s in ats_results.get("strengths", [])[:3]:
+                                st.write(f"✅ {s}")
+                        
+                        if ats_results.get("missing_keywords"):
+                            st.warning(f"**Missing Keywords:** {', '.join(ats_results['missing_keywords'][:5])}")
+                        
+                        # Suggest tailoring if score is low
+                        if ats_results.get("ats_score", 0) < 75:
+                            st.warning(f"⚠️ ATS Score is below 75%. Consider tailoring your resume!")
+                            if st.button("🔧 Tailor Resume Now"):
+                                st.session_state["tailor_for_job"] = job_description
+                                st.switch_page("pages/resume_builder.py")
+                        
                     except Exception as e:
                         st.error(f"❌ Error: {str(e)}")
+                        import traceback
+                        st.code(traceback.format_exc())
     
-    # TAB 2: View Applications
+    # ==================== TAB 2: VIEW APPLICATIONS ====================
     with tab2:
         st.subheader("Your Job Applications")
         
@@ -191,12 +246,12 @@ def render_job_tracker():
                 applications = search_applications(applications, search_term)
             
             if not applications:
-                st.info("📭 No applications yet. Add your first one in the 'Add Application' tab!")
+                st.info("📭 No applications yet. Add your first one in the 'Quick Add' tab!")
             else:
                 st.write(f"**Total:** {len(applications)} applications")
                 
                 for idx, app in enumerate(reversed(applications)):
-                    with st.expander(f"{app.get('Company', 'N/A')} - {app.get('Position', 'N/A')} ({app.get('Status', 'N/A')})"):
+                    with st.expander(f"{app.get('Company', 'N/A')} - {app.get('Position', 'N/A')} ({app.get('Status', 'N/A')}) - ATS: {app.get('ATS Score', 'N/A')}"):
                         col1, col2 = st.columns(2)
                         
                         with col1:
@@ -204,7 +259,7 @@ def render_job_tracker():
                             st.write("**Company:**", app.get("Company", "N/A"))
                             st.write("**Position:**", app.get("Position", "N/A"))
                             if app.get("Job URL"):
-                                st.write("**Job URL:**", app.get("Job URL"))
+                                st.markdown(f"**Job URL:** [{app.get('Job URL')}]({app.get('Job URL')})")
                             st.write("**Status:**", app.get("Status", "N/A"))
                         
                         with col2:
@@ -212,8 +267,7 @@ def render_job_tracker():
                             st.write("**Contact:**", app.get("Contact Person", "N/A"))
                             if app.get("Contact Email"):
                                 st.write("**Email:**", app.get("Contact Email"))
-                            st.write("**Follow-up:**", app.get("Follow-up Date", "N/A"))
-                            st.write("**Cover Letter:**", app.get("Cover Letter", "N/A"))
+                            st.write("**Resume Version:**", app.get("Resume Version", "N/A"))
                         
                         if app.get("Notes"):
                             st.write("**Notes:**", app.get("Notes"))
@@ -227,7 +281,7 @@ def render_job_tracker():
                             key=f"status_{idx}"
                         )
                         
-                        if st.button("Update", key=f"update_{idx}"):
+                        if st.button("Update Status", key=f"update_{idx}"):
                             try:
                                 row_num = len(applications) - idx + 1
                                 update_application_status(st.session_state["worksheet"], row_num, new_status)
@@ -239,7 +293,7 @@ def render_job_tracker():
         except Exception as e:
             st.error(f"❌ Error loading applications: {str(e)}")
     
-    # TAB 3: Statistics
+    # ==================== TAB 3: STATISTICS ====================
     with tab3:
         st.subheader("Application Statistics")
         
@@ -270,10 +324,74 @@ def render_job_tracker():
                 
                 for status, count in sorted(status_counts.items(), key=lambda x: x[1], reverse=True):
                     st.write(f"**{status}:** {count}")
+                
+                # ATS Score distribution
+                st.subheader("ATS Score Distribution")
+                ats_scores = []
+                for app in applications:
+                    score_str = app.get("ATS Score", "0%")
+                    try:
+                        score = int(score_str.replace("%", ""))
+                        ats_scores.append(score)
+                    except:
+                        pass
+                
+                if ats_scores:
+                    avg_score = sum(ats_scores) / len(ats_scores)
+                    st.metric("Average ATS Score", f"{avg_score:.1f}%")
+                    
+                    high_score = sum(1 for s in ats_scores if s >= 80)
+                    med_score = sum(1 for s in ats_scores if 60 <= s < 80)
+                    low_score = sum(1 for s in ats_scores if s < 60)
+                    
+                    st.write(f"🟢 High (80%+): {high_score}")
+                    st.write(f"🟡 Medium (60-79%): {med_score}")
+                    st.write(f"🔴 Low (<60%): {low_score}")
         
         except Exception as e:
             st.error(f"❌ Error loading statistics: {str(e)}")
 
+
+# Helper function to extract job details from URL
+def extract_job_details_from_url(url):
+    """Extract job posting details from URL using AI."""
+    try:
+        from ai_functions import client
+        
+        # Fetch the job posting content
+        import requests
+        response = requests.get(url, timeout=10)
+        content = response.text[:8000]  # Limit content
+        
+        # Use AI to extract details
+        system_prompt = (
+            "Extract job posting details from HTML content.\n"
+            "Return ONLY valid JSON with these keys:\n"
+            '{"company": "string", "position": "string", "description": "full job description text"}\n'
+            "No markdown, no explanations."
+        )
+        
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Extract from:\n{content}"}
+            ],
+            temperature=0.3
+        )
+        
+        text = resp.choices[0].message.content.strip()
+        text = re.sub(r'^```json\s*', '', text)
+        text = re.sub(r'\s*```$', '', text)
+        
+        return json.loads(text)
+        
+    except Exception as e:
+        return {
+            "company": "Unknown Company",
+            "position": "Unknown Position",
+            "description": f"Could not fetch job details: {str(e)}"
+        }
 
 def main():
     """Main Streamlit application with AI features"""
