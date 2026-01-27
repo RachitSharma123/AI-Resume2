@@ -1,4 +1,5 @@
 # ai_functions.py
+import ast
 import json
 import os
 import re
@@ -6,6 +7,28 @@ from functools import lru_cache
 
 from openai import OpenAI
 import streamlit as st
+
+def _parse_ai_json(text: str) -> dict:
+    cleaned = text.strip()
+    cleaned = re.sub(r'^```json\s*', '', cleaned)
+    cleaned = re.sub(r'\s*```$', '', cleaned)
+
+    m = re.search(r'\{.*\}', cleaned, flags=re.DOTALL)
+    if m:
+        cleaned = m.group(0)
+
+    cleaned = cleaned.replace("“", "\"").replace("”", "\"").replace("’", "'")
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pythonish = re.sub(r"\btrue\b", "True", cleaned, flags=re.IGNORECASE)
+        pythonish = re.sub(r"\bfalse\b", "False", pythonish, flags=re.IGNORECASE)
+        pythonish = re.sub(r"\bnull\b", "None", pythonish, flags=re.IGNORECASE)
+        data = ast.literal_eval(pythonish)
+        if not isinstance(data, dict):
+            raise ValueError("Parsed AI response is not a JSON object.")
+        return data
 
 @lru_cache(maxsize=1)
 def get_openai_client() -> OpenAI:
@@ -167,15 +190,8 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt
             temperature=0.3
         )
         
-        text = resp.choices[0].message.content.strip()
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
-        
-        m = re.search(r'\{.*\}', text, flags=re.DOTALL)
-        if m:
-            text = m.group(0)
-        
-        return json.loads(text)
+        text = resp.choices[0].message.content
+        return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"ATS analysis failed: {str(e)}")
 
@@ -251,15 +267,8 @@ def call_ai_extract_keywords(job_description: str, model: str = "gpt-5.2") -> di
             temperature=0.3
         )
         
-        text = resp.choices[0].message.content.strip()
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
-        
-        m = re.search(r'\{.*\}', text, flags=re.DOTALL)
-        if m:
-            text = m.group(0)
-        
-        return json.loads(text)
+        text = resp.choices[0].message.content
+        return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"Keyword extraction failed: {str(e)}")
 
@@ -325,15 +334,8 @@ def call_ai_compress_resume(resume_json: dict, model: str = "gpt-5.2") -> dict:
             temperature=0.5
         )
         
-        text = resp.choices[0].message.content.strip()
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
-        
-        m = re.search(r'\{.*\}', text, flags=re.DOTALL)
-        if m:
-            text = m.group(0)
-        
-        return json.loads(text)
+        text = resp.choices[0].message.content
+        return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"Resume compression failed: {str(e)}")
 
@@ -373,14 +375,7 @@ def call_ai_improve_from_ats(resume_json: dict, ats_results: dict, job_descripti
             temperature=0.6
         )
         
-        text = resp.choices[0].message.content.strip()
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
-        
-        m = re.search(r'\{.*\}', text, flags=re.DOTALL)
-        if m:
-            text = m.group(0)
-        
-        return json.loads(text)
+        text = resp.choices[0].message.content
+        return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"ATS-based improvement failed: {str(e)}")
