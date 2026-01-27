@@ -31,9 +31,9 @@ try:
         search_applications
     )
     GOOGLE_SHEETS_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     GOOGLE_SHEETS_AVAILABLE = False
-    st.warning("⚠️ Google Sheets integration not available. Install: pip install gspread google-auth")
+    print(f"Google Sheets not available: {e}")  # Only print to console, not to UI yet
 
 def render_job_tracker():
     """Render the job tracker interface."""
