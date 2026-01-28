@@ -383,6 +383,10 @@ def main():
         st.session_state["extracted_keywords"] = None
     if "output_name" not in st.session_state:
         st.session_state["output_name"] = f"Resume_{datetime.now().strftime('%Y%m%d_%H%M')}"
+    if "output_pdf" not in st.session_state:
+        st.session_state["output_pdf"] = f"{safe_filename(st.session_state['output_name'])}.pdf"
+    if "cover_pdf" not in st.session_state:
+        st.session_state["cover_pdf"] = f"{safe_filename(st.session_state['output_name'])}_CoverLetter.pdf"
     
     # Bottom navigation in collapsible
     with st.expander("🎯 Navigation", expanded=False):
