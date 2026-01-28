@@ -670,11 +670,11 @@ st.divider()
     
     # ============== PDF GENERATION SECTION ==============
     
-  with st.expander("🔞 Stuff Generator", expanded=True):
+with st.expander("🔞 Stuff Generator", expanded=True):
       st.header("📄 Generate PDFs")
       pdf_col1, pdf_col2 = st.columns(2)
     
-    with pdf_col1:
+with pdf_col1:
         if st.button("⚙️ Generate Resume PDF", use_container_width=True):
             with st.spinner("📄 Generating resume PDF..."):
                 try:
@@ -712,7 +712,7 @@ st.divider()
                     import traceback
                     st.code(traceback.format_exc())
     
-    with pdf_col2:
+with pdf_col2:
         if st.button("📝 Generate Cover Letter PDF", use_container_width=True):
             with st.spinner("📝 Generating cover letter PDF..."):
                 try:
@@ -750,10 +750,6 @@ st.divider()
                     st.error(f"❌ Error: {str(e)}")
                     import traceback
                     st.code(traceback.format_exc())
-
-
-if __name__ == "__main__":
-    main()
 
 
 if __name__ == "__main__":
