@@ -381,6 +381,8 @@ def main():
         st.session_state["ats_results"] = None
     if "extracted_keywords" not in st.session_state:
         st.session_state["extracted_keywords"] = None
+    if "output_name" not in st.session_state:
+        st.session_state["output_name"] = f"Resume_{datetime.now().strftime('%Y%m%d_%H%M')}"
     
     # Bottom navigation in collapsible
     with st.expander("🎯 Navigation", expanded=False):
@@ -470,8 +472,12 @@ def main():
         st.divider()
         
         # File naming
-        default_name = f"Resume_{datetime.now().strftime('%Y%m%d_%H%M')}"
-        out_name = st.text_input("📁 Output filename (no .pdf needed)", value=default_name)
+        out_name = st.text_input(
+            "📁 Output filename (no .pdf needed)",
+            value=st.session_state["output_name"]
+        )
+        if out_name != st.session_state["output_name"]:
+            st.session_state["output_name"] = out_name
         output_pdf = f"{safe_filename(out_name)}.pdf"
         cover_pdf = f"{safe_filename(out_name)}_CoverLetter.pdf"
         st.session_state["output_pdf"] = output_pdf
