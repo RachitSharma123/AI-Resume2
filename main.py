@@ -22,6 +22,8 @@ from ai_functions import (
     call_ai_improve_from_ats
 )
 
+JSON_PATH = Path("resume_data.json")
+
 # Import Google Sheets functions at the top
 GOOGLE_SHEETS_AVAILABLE = False
 GOOGLE_SHEETS_ERROR = None
@@ -364,7 +366,6 @@ def main():
     st.title("🤖 AI-Powered Resume Generator")
     
     # Load JSON data first
-    JSON_PATH = Path("resume_data.json")
     if not JSON_PATH.exists():
         st.error("❌ resume_data.json not found in root directory")
         st.stop()
@@ -664,3 +665,7 @@ def main():
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ Error: {str(e)}")
+
+
+if __name__ == "__main__":
+    main()
