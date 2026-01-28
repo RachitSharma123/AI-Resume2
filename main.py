@@ -796,6 +796,34 @@ st.divider()
     
 with st.expander("🔞 Stuff Generator", expanded=True):
       st.header("📄 Generate PDFs")
+      
+      # Font customization controls
+      st.subheader("🎨 Customize PDF Appearance")
+      
+      font_col1, font_col2 = st.columns(2)
+      
+      with font_col1:
+          font_scale = st.slider(
+              "📏 Font Size Scale",
+              min_value=0.5,
+              max_value=1.5,
+              value=1.0,
+              step=0.05,
+              help="Adjust the overall size of all fonts in the PDF. 1.0 = normal, 0.8 = smaller, 1.2 = larger"
+          )
+      
+      with font_col2:
+          font_family = st.selectbox(
+              "🔤 Font Family",
+              options=["Helvetica", "Times", "Courier"],
+              index=0,
+              help="Choose the font style for your PDF"
+          )
+      
+      st.info(f"Current settings: Font size at {int(font_scale * 100)}%, using {font_family} font")
+      
+      st.divider()
+      
       pdf_col1, pdf_col2 = st.columns(2)
     
 with pdf_col1:
@@ -816,9 +844,14 @@ with pdf_col1:
                     
                     JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
                     
+                    # Define output path for resume PDF
                     output_pdf = "Rachit_Sharma_Resume_Generated.pdf"
-                    cover_pdf = "Cover_Letter.pdf"
-                    create_resume_pdf(json_path=str(JSON_PATH), output_path=output_pdf)
+                    create_resume_pdf(
+                        json_path=str(JSON_PATH), 
+                        output_path=output_pdf,
+                        font_scale=font_scale,
+                        font_family=font_family
+                    )
                     
                     st.success("✅ Resume PDF generated successfully!")
                     
@@ -857,7 +890,14 @@ with pdf_col2:
                     else:
                         JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
                         
-                        create_cover_letter_pdf(json_path=str(JSON_PATH), output_path=cover_pdf)
+                        # Define output path for cover letter PDF
+                        cover_pdf = "Cover_Letter.pdf"
+                        create_cover_letter_pdf(
+                            json_path=str(JSON_PATH), 
+                            output_path=cover_pdf,
+                            font_scale=font_scale,
+                            font_family=font_family
+                        )
                         
                         st.success("✅ Cover letter PDF generated!")
                         
