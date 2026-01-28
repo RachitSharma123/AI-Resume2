@@ -816,6 +816,8 @@ with pdf_col1:
                     
                     JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
                     
+                    output_pdf = "Rachit_Sharma_Resume_Generated.pdf"
+                    cover_pdf = "Cover_Letter.pdf"
                     create_resume_pdf(json_path=str(JSON_PATH), output_path=output_pdf)
                     
                     st.success("✅ Resume PDF generated successfully!")
