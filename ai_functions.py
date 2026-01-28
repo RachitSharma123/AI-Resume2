@@ -161,18 +161,20 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt
     system_prompt = (
         "You are an ATS (Applicant Tracking System) analyzer.\n"
         "Analyze the resume against the job description and provide:\n\n"
-        "Return ONLY valid JSON with:\n"
+        "Return ONLY valid JSON with this exact structure:\n"
         "{\n"
-        '  "ats_score": 0-100,\n'
-        '  "keyword_match": 0-100,\n'
-        '  "experience_match": 0-100,\n'
-        '  "skills_match": 0-100,\n'
+        '  "ats_score": 75,\n'
+        '  "keyword_match": 80,\n'
+        '  "experience_match": 70,\n'
+        '  "skills_match": 85,\n'
         '  "strengths": ["strength1", "strength2", "strength3"],\n'
         '  "weaknesses": ["weakness1", "weakness2", "weakness3"],\n'
         '  "missing_keywords": ["keyword1", "keyword2"],\n'
         '  "suggestions": ["suggestion1", "suggestion2", "suggestion3"]\n'
         "}\n\n"
-        "Be honest but constructive. Focus on actionable improvements."
+        "IMPORTANT: Numbers must be integers without quotes. Arrays must have at least one item.\n"
+        "Be honest but constructive. Focus on actionable improvements.\n"
+        "Return ONLY the JSON object, no markdown, no explanations, no code blocks."
     )
 
     user_prompt = json.dumps({
@@ -181,7 +183,6 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt
     }, ensure_ascii=False)
 
     try:
-        client = get_openai_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[
@@ -191,8 +192,43 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt
             temperature=0.3
         )
         
-        text = resp.choices[0].message.content
-        return _parse_ai_json(text)
+        text = resp.choices[0].message.content.strip()
+        
+        # Remove markdown code blocks if present
+        text = re.sub(r'^```json\s*', '', text)
+        text = re.sub(r'^```\s*', '', text)
+        text = re.sub(r'\s*```$', '', text)
+        
+        # Extract JSON if wrapped
+        m = re.search(r'\{.*\}', text, flags=re.DOTALL)
+        if m:
+            text = m.group(0)
+        
+        result = json.loads(text)
+        
+        # Validate structure
+        required_keys = ["ats_score", "keyword_match", "experience_match", "skills_match", 
+                        "strengths", "weaknesses", "missing_keywords", "suggestions"]
+        for key in required_keys:
+            if key not in result:
+                result[key] = [] if key in ["strengths", "weaknesses", "missing_keywords", "suggestions"] else 0
+        
+        return result
+        
+    except json.JSONDecodeError as e:
+        print(f"JSON Parse Error: {e}")
+        print(f"Response text: {text}")
+        # Return default structure on error
+        return {
+            "ats_score": 0,
+            "keyword_match": 0,
+            "experience_match": 0,
+            "skills_match": 0,
+            "strengths": ["Unable to analyze - JSON parse error"],
+            "weaknesses": ["Please try again"],
+            "missing_keywords": [],
+            "suggestions": ["Retry the analysis"]
+        }
     except Exception as e:
         raise Exception(f"ATS analysis failed: {str(e)}")
 
