@@ -17,8 +17,8 @@ from drawing_utils import (
 
 def create_resume_pdf(json_path="resume_data.json",
                       output_path="Rachit_Sharma_Resume_Generated.pdf",
-                      font_scale=1.0,
-                      font_family="Helvetica"):
+                      font_scale=font_scale,      # ← NEW 
+                      font_family=font_family     # ← NEW ):
     """Generate resume PDF from JSON data with customizable fonts.
     
     Args:
