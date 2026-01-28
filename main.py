@@ -674,159 +674,37 @@ def main():
                     except Exception as e:
                         st.error(f"❌ Error: {str(e)}")
 
-        # Strengths and Weaknesses
-        strength_col, weakness_col = st.columns(2)
 
-        with strength_col:
-            st.success("**✅ Strengths:**")
-            for s in results.get("strengths", []):
-                st.write(f"• {s}")
-
-        with weakness_col:
-            st.warning("**⚠️ Areas to Improve:**")
-            for w in results.get("weaknesses", []):
-                st.write(f"• {w}")
-
-        # Missing keywords
-        if results.get("missing_keywords"):
-            st.error("**🔴 Missing Keywords:**")
-            st.write(", ".join(results["missing_keywords"]))
-
-        # Suggestions
-        st.info("**💡 Suggestions:**")
-        for sug in results.get("suggestions", []):
-            st.write(f"• {sug}")
-
-    # Display Extracted Keywords
-    if st.session_state.get("extracted_keywords"):
-        st.divider()
-        st.subheader("🔑 Extracted Keywords from Job Description")
-        kw = st.session_state["extracted_keywords"]
-
-        kw_col1, kw_col2 = st.columns(2)
-
-        with kw_col1:
-            st.write("**Role:**", kw.get("role_title", "N/A"))
-            st.write("**Experience Level:**", kw.get("experience_level", "N/A"))
-
-            st.write("**Required Skills:**")
-            for skill in kw.get("required_skills", []):
-                st.write(f"• {skill}")
-
-        with kw_col2:
-            st.write("**Key Technologies:**")
-            for tech in kw.get("key_technologies", []):
-                st.write(f"• {tech}")
-
-            st.write("**Preferred Skills:**")
-            for skill in kw.get("preferred_skills", []):
-                st.write(f"• {skill}")
-
-    st.divider()
-
-    # ============== DEBUG SECTION ==============
-    with st.expander("🐛 Debug: Test Data Loading"):
-        col_test1, col_test2 = st.columns(2)
-
-        with col_test1:
-            if st.button("🧪 Test JSON Parsing"):
-                try:
-                    raw_data = json.loads(st.session_state["edited_json"])
-
-                    # Handle nested structure
-                    if "resume_json" in raw_data:
-                        data = raw_data["resume_json"]
-                        st.info("Using nested 'resume_json' structure")
-                    else:
-                        data = raw_data
-                        st.info("Using direct structure")
-
-                    st.success("✅ JSON parsed successfully!")
-
-                    # Show all top-level keys
-                    st.write("**Top-level keys found:**", list(data.keys()))
-
-                    # Show sample data
-                    st.write("**Name:**", data.get("name", "NOT FOUND"))
-                    st.write("**Contact:**", data.get("contact", "NOT FOUND"))
-                    st.write("**Career Objective (first 100 chars):**", str(data.get("career_objective", "NOT FOUND"))[:100])
-                    st.write("**Number of Experience entries:**", len(data.get("experience", [])))
-                    st.write("**Number of Education entries:**", len(data.get("education", [])))
-                    st.write("**Number of Skills entries:**", len(data.get("skills_snapshot", [])))
-
-                    # Show first experience entry if exists
-                    if data.get("experience"):
-                        st.write("**First experience entry:**")
-                        st.json(data["experience"][0])
-
-                except Exception as e:
-                    st.error(f"Error: {e}")
-                    import traceback
-                    st.code(traceback.format_exc())
-
-        with col_test2:
-            if st.button("🧪 Test Basic PDF Creation"):
-                try:
-                    from reportlab.pdfgen import canvas
-                    from reportlab.lib.pagesizes import A4
-
-                    test_pdf = "test_basic.pdf"
-                    c = canvas.Canvas(test_pdf, pagesize=A4)
-                    c.setFont("Helvetica-Bold", 24)
-                    c.drawString(100, 700, "TEST PDF - If you see this, PDF works!")
-                    c.drawString(100, 650, "Your Name Here")
-                    c.save()
-
-                    st.success("✅ Basic PDF created!")
-                    with open(test_pdf, "rb") as f:
-                        st.download_button("Download Test PDF", f, test_pdf, mime="application/pdf")
-
-                except Exception as e:
-                    st.error(f"Error: {e}")
-                    import traceback
-                    st.code(traceback.format_exc())
-
-    st.divider()
-
+st.divider()
+    
     # ============== PDF GENERATION SECTION ==============
-    st.header("📄 Generate PDFs")
-
-    pdf_col1, pdf_col2 = st.columns(2)
-    output_pdf = st.session_state.get("output_pdf")
-    cover_pdf = st.session_state.get("cover_pdf")
-
-    with pdf_col1:
+    
+with st.expander("🔞 Stuff Generator", expanded=True):
+      st.header("📄 Generate PDFs")
+      pdf_col1, pdf_col2 = st.columns(2)
+    
+with pdf_col1:
         if st.button("⚙️ Generate Resume PDF", use_container_width=True):
             with st.spinner("📄 Generating resume PDF..."):
                 try:
-                    # Parse and check data before generating
                     raw_data = json.loads(st.session_state["edited_json"])
-
+                    
                     # Handle nested structure
                     if "resume_json" in raw_data:
                         data = raw_data["resume_json"]
+                        if isinstance(data, dict) and "resume_json" in data:
+                            data = data["resume_json"]
                     else:
                         data = raw_data
-
-                    # Debug: Show what we're about to use
-                    st.info(
-                        "📊 Using data with "
-                        f"{len(data.get('experience', []))} experience entries, "
-                        f"{len(data.get('education', []))} education entries"
-                    )
-
-                    # Save to file
+                    
+                    st.info(f"📊 Using data with {len(data.get('experience', []))} experience entries, {len(data.get('education', []))} education entries")
+                    
                     JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
-
-                    if not output_pdf:
-                        st.error("❌ Output filename not set. Please enter a filename first.")
-                        return
-
+                    
                     create_resume_pdf(json_path=str(JSON_PATH), output_path=output_pdf)
-
+                    
                     st.success("✅ Resume PDF generated successfully!")
-
-                    # Show download button
+                    
                     if Path(output_pdf).exists():
                         with open(output_pdf, "rb") as f:
                             st.download_button(
@@ -842,35 +720,30 @@ def main():
                     st.error(f"❌ Error generating PDF: {str(e)}")
                     import traceback
                     st.code(traceback.format_exc())
-
-    with pdf_col2:
+    
+with pdf_col2:
         if st.button("📝 Generate Cover Letter PDF", use_container_width=True):
             with st.spinner("📝 Generating cover letter PDF..."):
                 try:
                     raw_data = json.loads(st.session_state["edited_json"])
-
-                    # Handle nested structure
+                    
                     if "resume_json" in raw_data:
                         data = raw_data["resume_json"]
+                        if isinstance(data, dict) and "resume_json" in data:
+                            data = data["resume_json"]
                     else:
                         data = raw_data
-
+                    
                     if "cover_letter" not in data:
                         st.warning("⚠️ No cover letter found in JSON. Use 'AI: Generate Cover Letter' first!")
                         st.info("💡 Click the '✍️ AI: Generate Cover Letter' button above to create a cover letter first.")
                     else:
-                        # Save to file
                         JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
-
-                        if not cover_pdf:
-                            st.error("❌ Cover letter filename not set. Please enter a filename first.")
-                            return
-
+                        
                         create_cover_letter_pdf(json_path=str(JSON_PATH), output_path=cover_pdf)
-
+                        
                         st.success("✅ Cover letter PDF generated!")
-
-                        # Show download button
+                        
                         if Path(cover_pdf).exists():
                             with open(cover_pdf, "rb") as f:
                                 st.download_button(
