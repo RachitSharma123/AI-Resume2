@@ -14,57 +14,66 @@ from drawing_utils import (
     draw_page_border
 )
 
-# ============== FONT CONFIGURATION ==============
-# Adjust this single scale factor to change ALL fonts proportionally
-# 1.0 = normal size, 0.9 = 10% smaller, 0.8 = 20% smaller
-FONT_SCALE = 1.0
-
-
-class FontConfig:
-    """Centralized font configuration - change FONT_SCALE to adjust all fonts"""
-    NAME = 14 * FONT_SCALE
-    CONTACT = 8.5 * FONT_SCALE
-    SECTION_TITLE = 10 * FONT_SCALE
-    OBJECTIVE = 9.5 * FONT_SCALE
-    SKILLS_LABEL = 9.5 * FONT_SCALE
-    SKILLS_VALUE = 9.5 * FONT_SCALE
-    COMPANY = 10 * FONT_SCALE
-    ROLE = 9.5 * FONT_SCALE
-    BULLET = 9 * FONT_SCALE
-    EDUCATION = 8 * FONT_SCALE
-    CERTIFICATION = 9 * FONT_SCALE
-    REFERENCE = 7.5 * FONT_SCALE
-
-
-class SpacingConfig:
-    """Centralized spacing configuration"""
-    AFTER_NAME = 14 * FONT_SCALE
-    AFTER_CONTACT = 7 * FONT_SCALE
-    AFTER_OBJECTIVE = 8 * FONT_SCALE
-    AFTER_SKILLS_SECTION = 8 * FONT_SCALE
-    SKILLS_LINE = 11 * FONT_SCALE
-    AFTER_COMPANY = 12 * FONT_SCALE
-    AFTER_ROLE = 12 * FONT_SCALE
-    BULLET_LINE = 10 * FONT_SCALE
-    AFTER_EXP_BLOCK = 5 * FONT_SCALE
-    EDU_LINE = 10 * FONT_SCALE
-    EDU_BLOCK = 12 * FONT_SCALE
-    CERT_LINE = 10 * FONT_SCALE
-    REF_LINE = 9 * FONT_SCALE
-
 
 def create_resume_pdf(json_path="resume_data.json",
-                      output_path="Rachit_Sharma_Resume_Generated.pdf"):
-    """Generate resume PDF from JSON data."""
+                      output_path="Rachit_Sharma_Resume_Generated.pdf",
+                      font_scale=1.0,
+                      font_family="Helvetica"):
+    """Generate resume PDF from JSON data with customizable fonts.
+    
+    Args:
+        json_path: Path to JSON file
+        output_path: Output PDF path
+        font_scale: Scale factor for all fonts (0.5 to 1.5, default 1.0)
+        font_family: Font family - 'Helvetica', 'Times', or 'Courier'
+    """
+    # Font family mapping
+    if font_family == "Times":
+        font_regular = "Times-Roman"
+        font_bold = "Times-Bold"
+    elif font_family == "Courier":
+        font_regular = "Courier"
+        font_bold = "Courier-Bold"
+    else:  # Helvetica (default)
+        font_regular = "Helvetica"
+        font_bold = "Helvetica-Bold"
+    
+    # Apply font scale to all font sizes
+    font_name = font_scale * 14
+    font_contact = font_scale * 8.5
+    font_section_title = font_scale * 10
+    font_objective = font_scale * 9.5
+    font_skills_label = font_scale * 9.5
+    font_skills_value = font_scale * 9.5
+    font_company = font_scale * 10
+    font_role = font_scale * 9.5
+    font_bullet = font_scale * 9
+    font_education = font_scale * 8
+    font_certification = font_scale * 9
+    font_reference = font_scale * 7.5
+    
+    # Apply spacing scale
+    spacing_after_name = font_scale * 14
+    spacing_after_contact = font_scale * 7
+    spacing_after_objective = font_scale * 8
+    spacing_after_skills_section = font_scale * 8
+    spacing_skills_line = font_scale * 11
+    spacing_after_company = font_scale * 12
+    spacing_after_role = font_scale * 12
+    spacing_bullet_line = font_scale * 10
+    spacing_after_exp_block = font_scale * 5
+    spacing_edu_line = font_scale * 10
+    spacing_edu_block = font_scale * 12
+    spacing_cert_line = font_scale * 10
+    spacing_ref_line = font_scale * 9
+
     # Read and parse JSON
     try:
         raw_data = json.loads(Path(json_path).read_text(encoding="utf-8"))
 
-        # Handle nested structure: {"resume_json": {...}} or direct {...}
-        # Also handle double-nested: {"resume_json": {"resume_json": {...}}}
+        # Handle nested structure
         if "resume_json" in raw_data:
             data = raw_data["resume_json"]
-            # Check for double nesting
             if isinstance(data, dict) and "resume_json" in data:
                 data = data["resume_json"]
                 print("⚠️ Fixed double-nested resume_json structure")
@@ -72,6 +81,8 @@ def create_resume_pdf(json_path="resume_data.json",
             data = raw_data
 
         print(f"✅ Loaded JSON data with keys: {list(data.keys())}")
+        print(f"🎨 Font Scale: {font_scale}")
+        print(f"🔤 Font Family: {font_family}")
     except Exception as e:
         print(f"❌ Error loading JSON: {e}")
         raise
@@ -97,124 +108,107 @@ def create_resume_pdf(json_path="resume_data.json",
     # Header
     name = data.get("name", "YOUR NAME")
     contact = data.get("contact", "Location | Phone | Email")
-    print(f"📝 Drawing Name: {name}")
-    print(f"📝 Drawing Contact: {contact}")
-    print(f"📝 Starting Y position: {y}")
-    print(f"📝 Font Scale: {FONT_SCALE}")
 
-    c.setFont("Helvetica-Bold", FontConfig.NAME)
+    c.setFont(font_bold, font_name)
     c.drawString(left, y, name)
-    y -= SpacingConfig.AFTER_NAME
+    y -= spacing_after_name
 
-    c.setFont("Helvetica", FontConfig.CONTACT)
+    c.setFont(font_regular, font_contact)
     c.drawString(left, y, contact)
-    y -= SpacingConfig.AFTER_CONTACT
-    print(f"📝 Y after header: {y}")
+    y -= spacing_after_contact
 
-    # Career Objective - ONLY section that can wrap
+    # Career Objective
     y = draw_divider(c, left, left + content_w, y)
     y -= 3
     y = new_page_if_needed(y)
 
-    y = draw_section_title(c, "CAREER OBJECTIVE", left, y, size=FontConfig.SECTION_TITLE)
+    c.setFont(font_bold, font_section_title)
+    c.drawString(left, y, "CAREER OBJECTIVE")
+    y -= (14 * font_scale + MIN_LINE_GAP)
 
     objective = data.get("career_objective", "")
-    print(f"📝 Career Objective length: {len(objective)} chars")
-    y = draw_wrapped_text(
-        c,
-        objective,
-        left,
-        y,
-        content_w,
-        font="Helvetica",
-        size=FontConfig.OBJECTIVE,
-        leading=11 * FONT_SCALE
-    )
-    y -= SpacingConfig.AFTER_OBJECTIVE
-    print(f"📝 Y after objective: {y}")
+    c.setFont(font_regular, font_objective)
+    obj_lines = wrap_lines(objective, content_w, font=font_regular, size=font_objective)
+    for oline in obj_lines:
+        c.drawString(left, y, oline)
+        y -= 11 * font_scale
+    y -= spacing_after_objective
 
-    # Skills Snapshot - NOW WITH WRAPPING
+    # Skills Snapshot
     y = new_page_if_needed(y)
-    y = draw_section_title(c, "SKILLS SNAPSHOT", left, y, size=FontConfig.SECTION_TITLE)
+    c.setFont(font_bold, font_section_title)
+    c.drawString(left, y, "SKILLS SNAPSHOT")
+    y -= (14 * font_scale + MIN_LINE_GAP)
 
     label_w = 5.5 * cm
     gap = 0.4 * cm
     value_x = left + label_w + gap
     value_w = content_w - label_w - gap
 
-    skills_count = 0
     for item in (data.get("skills_snapshot") or []):
         y = new_page_if_needed(y)
         label = item.get("label", "")
         value = item.get("value", "")
 
-        c.setFont("Helvetica-Bold", FontConfig.SKILLS_LABEL)
+        c.setFont(font_bold, font_skills_label)
         c.drawString(left, y, label)
 
-        # Wrap the value text instead of single line
-        c.setFont("Helvetica", FontConfig.SKILLS_VALUE)
-        value_lines = wrap_lines(value, value_w, font="Helvetica", size=FontConfig.SKILLS_VALUE)
+        c.setFont(font_regular, font_skills_value)
+        value_lines = wrap_lines(value, value_w, font=font_regular, size=font_skills_value)
         for vline in value_lines:
             c.drawString(value_x, y, vline)
-            y -= SpacingConfig.SKILLS_LINE
+            y -= spacing_skills_line
 
-        # Add small gap if wrapped multiple lines
         if len(value_lines) > 1:
             y -= 2
 
-        skills_count += 1
+    y -= spacing_after_skills_section
 
-    print(f"📝 Drew {skills_count} skills entries")
-    y -= SpacingConfig.AFTER_SKILLS_SECTION
-
-    # Experience - WITH WRAPPING
+    # Experience
     y = new_page_if_needed(y)
-    y = draw_section_title(c, "EXPERIENCE", left, y, size=FontConfig.SECTION_TITLE)
+    c.setFont(font_bold, font_section_title)
+    c.drawString(left, y, "EXPERIENCE")
+    y -= (14 * font_scale + MIN_LINE_GAP)
 
     def exp_block(company, role_line, bullets):
         nonlocal y
         y = new_page_if_needed(y)
 
-        c.setFont("Helvetica-Bold", FontConfig.COMPANY)
+        c.setFont(font_bold, font_company)
         c.drawString(left, y, company)
-        y -= SpacingConfig.AFTER_COMPANY
+        y -= spacing_after_company
 
-        # Wrap role line
-        c.setFont("Helvetica-Bold", FontConfig.ROLE)
-        role_lines = wrap_lines(role_line, content_w, font="Helvetica-Bold", size=FontConfig.ROLE)
+        c.setFont(font_bold, font_role)
+        role_lines = wrap_lines(role_line, content_w, font=font_bold, size=font_role)
         for rline in role_lines:
             c.drawString(left, y, rline)
-            y -= SpacingConfig.AFTER_ROLE
+            y -= spacing_after_role
 
-        # Wrap bullets
-        c.setFont("Helvetica", FontConfig.BULLET)
+        c.setFont(font_regular, font_bullet)
         for bullet in bullets:
-            bullet_lines = wrap_lines(bullet, content_w - 10, font="Helvetica", size=FontConfig.BULLET)
+            bullet_lines = wrap_lines(bullet, content_w - 10, font=font_regular, size=font_bullet)
             for i, bline in enumerate(bullet_lines):
                 if i == 0:
                     c.drawString(left, y, "•")
                     c.drawString(left + 10, y, bline)
                 else:
                     c.drawString(left + 10, y, bline)
-                y -= SpacingConfig.BULLET_LINE
+                y -= spacing_bullet_line
 
-        y -= SpacingConfig.AFTER_EXP_BLOCK
+        y -= spacing_after_exp_block
 
-    exp_count = 0
     for exp in (data.get("experience") or []):
         exp_block(
             exp.get("company", ""),
             exp.get("role_line", ""),
             exp.get("bullets", [])
         )
-        exp_count += 1
-
-    print(f"📝 Drew {exp_count} experience entries")
 
     # Education
     y = new_page_if_needed(y)
-    y = draw_section_title(c, "EDUCATION", left, y, size=FontConfig.SECTION_TITLE)
-    y -= 3
+    c.setFont(font_bold, font_section_title)
+    c.drawString(left, y, "EDUCATION")
+    y -= (14 * font_scale + MIN_LINE_GAP + 3)
 
     col_gap = 0.6 * cm
     col_w = (content_w - col_gap) / 2
@@ -222,7 +216,6 @@ def create_resume_pdf(json_path="resume_data.json",
     x2 = left + col_w + col_gap
 
     edu_items = data.get("education", []) or []
-    print(f"📝 Drawing {len(edu_items)} education entries")
 
     i = 0
     while i < len(edu_items):
@@ -234,12 +227,12 @@ def create_resume_pdf(json_path="resume_data.json",
         left_item = edu_items[i]
         right_item = edu_items[i + 1] if (i + 1) < len(edu_items) else None
 
-        c.setFont("Helvetica", FontConfig.EDUCATION)
+        c.setFont(font_regular, font_education)
         deg = left_item.get("degree", "")
         det = left_item.get("details", "")
 
         c.drawString(x1, y, deg)
-        y_temp = y - SpacingConfig.EDU_LINE
+        y_temp = y - spacing_edu_line
         c.drawString(x1, y_temp, det)
 
         if right_item:
@@ -248,45 +241,47 @@ def create_resume_pdf(json_path="resume_data.json",
             c.drawString(x2, y, deg2)
             c.drawString(x2, y_temp, det2)
 
-        y = y_temp - SpacingConfig.EDU_BLOCK
+        y = y_temp - spacing_edu_block
         i += 2
 
-    # Certifications - WITH WRAPPING
+    # Certifications
     certs = data.get("certifications") or []
     if certs:
         y = new_page_if_needed(y)
-        y = draw_section_title(c, "CERTIFICATIONS", left, y, size=FontConfig.SECTION_TITLE)
+        c.setFont(font_bold, font_section_title)
+        c.drawString(left, y, "CERTIFICATIONS")
+        y -= (14 * font_scale + MIN_LINE_GAP)
 
-        c.setFont("Helvetica", FontConfig.CERTIFICATION)
+        c.setFont(font_regular, font_certification)
         for cert in certs:
-            cert_lines = wrap_lines(cert, content_w - 10, font="Helvetica", size=FontConfig.CERTIFICATION)
+            cert_lines = wrap_lines(cert, content_w - 10, font=font_regular, size=font_certification)
             for i, cline in enumerate(cert_lines):
                 if i == 0:
                     c.drawString(left, y, "•")
                     c.drawString(left + 10, y, cline)
                 else:
                     c.drawString(left + 10, y, cline)
-                y -= SpacingConfig.CERT_LINE
+                y -= spacing_cert_line
 
         y = draw_divider(c, left, left + content_w, y)
-        print(f"📝 Drew {len(certs)} certifications")
 
     # References
     refs = data.get("references") or []
     if refs:
         y = new_page_if_needed(y)
-        y = draw_section_title(c, "REFERENCE", left, y - 2, size=FontConfig.SECTION_TITLE)
+        c.setFont(font_bold, font_section_title)
+        c.drawString(left, y - 2, "REFERENCE")
+        y -= (14 * font_scale + MIN_LINE_GAP)
+        
         for r in refs:
             y = new_page_if_needed(y)
-            c.setFont("Helvetica", FontConfig.REFERENCE)
+            c.setFont(font_regular, font_reference)
             c.drawString(left, y, r)
-            y -= SpacingConfig.REF_LINE
-        print(f"📝 Drew {len(refs)} references")
+            y -= spacing_ref_line
 
     c.save()
     print(f"✅ PDF saved to: {output_path}")
 
-    # Verify file was created
     if Path(output_path).exists():
         file_size = Path(output_path).stat().st_size
         print(f"✅ File created successfully: {file_size} bytes")
@@ -295,8 +290,28 @@ def create_resume_pdf(json_path="resume_data.json",
 
 
 def create_cover_letter_pdf(json_path="resume_data.json",
-                            output_path="Cover_Letter.pdf"):
-    """Generate cover letter PDF from JSON data."""
+                            output_path="Cover_Letter.pdf",
+                            font_scale=1.0,
+                            font_family="Helvetica"):
+    """Generate cover letter PDF from JSON data with customizable fonts.
+    
+    Args:
+        json_path: Path to JSON file
+        output_path: Output PDF path
+        font_scale: Scale factor for all fonts (0.5 to 1.5, default 1.0)
+        font_family: Font family - 'Helvetica', 'Times', or 'Courier'
+    """
+    # Font family mapping
+    if font_family == "Times":
+        font_regular = "Times-Roman"
+        font_bold = "Times-Bold"
+    elif font_family == "Courier":
+        font_regular = "Courier"
+        font_bold = "Courier-Bold"
+    else:  # Helvetica (default)
+        font_regular = "Helvetica"
+        font_bold = "Helvetica-Bold"
+
     raw_data = json.loads(Path(json_path).read_text(encoding="utf-8"))
 
     # Handle nested structure
@@ -331,36 +346,30 @@ def create_cover_letter_pdf(json_path="resume_data.json",
     if str(date_val).strip().upper() == "AUTO" or not str(date_val).strip():
         date_val = datetime.now().strftime("%d %B %Y")
 
-    c.setFont("Helvetica", 10)
+    c.setFont(font_regular, 10 * font_scale)
     c.drawString(left, y, str(date_val))
-    y -= 18
+    y -= 18 * font_scale
 
     # Recipient block
     recipient = str(cl.get("recipient", "Hiring Manager")).strip()
     company = str(cl.get("company", "")).strip()
     company_address = str(cl.get("company_address", "")).strip()
 
-    c.setFont("Helvetica", 10)
+    c.setFont(font_regular, 10 * font_scale)
     if recipient:
         c.drawString(left, y, recipient)
-        y -= 12
+        y -= 12 * font_scale
     if company:
         c.drawString(left, y, company)
-        y -= 12
+        y -= 12 * font_scale
     if company_address:
-        y = draw_wrapped_text(
-            c,
-            company_address,
-            left,
-            y,
-            content_w,
-            font="Helvetica",
-            size=10,
-            leading=12
-        )
+        addr_lines = wrap_lines(company_address, content_w, font=font_regular, size=10 * font_scale)
+        for addr_line in addr_lines:
+            c.drawString(left, y, addr_line)
+            y -= 12 * font_scale
         y -= 2
 
-    y -= 8
+    y -= 8 * font_scale
     y = new_page_if_needed(y)
 
     # Subject
@@ -370,17 +379,11 @@ def create_cover_letter_pdf(json_path="resume_data.json",
         subject = subject.replace("[Role Title]", role_title)
 
     if subject:
-        c.setFont("Helvetica-Bold", 10.5)
-        y = draw_wrapped_text(
-            c,
-            subject,
-            left,
-            y,
-            content_w,
-            font="Helvetica-Bold",
-            size=10.5,
-            leading=13
-        )
+        c.setFont(font_bold, 10.5 * font_scale)
+        subj_lines = wrap_lines(subject, content_w, font=font_bold, size=10.5 * font_scale)
+        for sline in subj_lines:
+            c.drawString(left, y, sline)
+            y -= 13 * font_scale
         y -= 6
 
     y = new_page_if_needed(y)
@@ -394,68 +397,54 @@ def create_cover_letter_pdf(json_path="resume_data.json",
         greeting = f"Dear {recipient or 'Hiring Manager'},"
         opening_for_body = opening
 
-    c.setFont("Helvetica", 10.5)
+    c.setFont(font_regular, 10.5 * font_scale)
     c.drawString(left, y, greeting)
-    y -= 20
+    y -= 20 * font_scale
     y = new_page_if_needed(y)
 
     # Main letter body
     body_points = cl.get("body_points", [])
 
-    def draw_paragraphs_and_bullets(opening_text, body_list):
-        nonlocal y
-        c.setFont("Helvetica", 10.5)
+    if opening_for_body:
+        open_lines = wrap_lines(opening_for_body, content_w, font=font_regular, size=10.5 * font_scale)
+        for oline in open_lines:
+            c.drawString(left, y, oline)
+            y -= 14 * font_scale
+        y -= 8 * font_scale
 
-        def draw_para(text, y_pos):
-            return draw_wrapped_text(
-                c,
-                text,
-                left,
-                y_pos,
-                content_w,
-                font="Helvetica",
-                size=10.5,
-                leading=14
-            )
-
-        if opening_text:
-            y = draw_para(opening_text, y)
-            y -= 8
-
-        for p in body_list or []:
-            y = draw_para(p, y)
-            y -= 8
-
-        return y
-
-    y = draw_paragraphs_and_bullets(opening_for_body, body_points)
+    for p in body_points or []:
+        para_lines = wrap_lines(p, content_w, font=font_regular, size=10.5 * font_scale)
+        for pline in para_lines:
+            c.drawString(left, y, pline)
+            y -= 14 * font_scale
+        y -= 8 * font_scale
 
     y = new_page_if_needed(y)
 
     # Closing
     closing = str(cl.get("closing", "Kind regards,")).strip()
     y -= 2
-    c.setFont("Helvetica", 10.5)
+    c.setFont(font_regular, 10.5 * font_scale)
     c.drawString(left, y, closing)
-    y -= 22
+    y -= 22 * font_scale
 
     # Signature + contact
     signature_name = str(cl.get("signature_name", data.get("name", ""))).strip()
     phone_number = str(cl.get("phone_number", "")).strip()
     email = str(cl.get("email", "")).strip()
 
-    c.setFont("Helvetica-Bold", 10.5)
+    c.setFont(font_bold, 10.5 * font_scale)
     if signature_name:
         c.drawString(left, y, signature_name)
-        y -= 14
+        y -= 14 * font_scale
 
-    c.setFont("Helvetica", 10)
+    c.setFont(font_regular, 10 * font_scale)
     if phone_number:
         c.drawString(left, y, phone_number)
-        y -= 12
+        y -= 12 * font_scale
     if email:
         c.drawString(left, y, email)
-        y -= 12
+        y -= 12 * font_scale
 
     # Word count calculation
     def wc_count(text: str) -> int:
@@ -485,3 +474,25 @@ def create_cover_letter_pdf(json_path="resume_data.json",
 
     c.save()
     print(f"✅ Created cover letter: {output_path}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
