@@ -8,7 +8,7 @@ from typing import Optional
 
 from openai import OpenAI
 import streamlit as st
-
+client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", ""))
 def _parse_ai_json(text: str) -> dict:
     cleaned = text.strip()
     cleaned = re.sub(r'^```json\s*', '', cleaned)
