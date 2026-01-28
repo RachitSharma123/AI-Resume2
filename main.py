@@ -22,6 +22,8 @@ from ai_functions import (
     call_ai_improve_from_ats
 )
 
+JSON_PATH = Path("resume_data.json")
+
 # Import Google Sheets functions at the top
 GOOGLE_SHEETS_AVAILABLE = False
 GOOGLE_SHEETS_ERROR = None
@@ -364,7 +366,6 @@ def main():
     st.title("🤖 AI-Powered Resume Generator")
     
     # Load JSON data first
-    JSON_PATH = Path("resume_data.json")
     if not JSON_PATH.exists():
         st.error("❌ resume_data.json not found in root directory")
         st.stop()
@@ -473,6 +474,8 @@ def main():
         out_name = st.text_input("📁 Output filename (no .pdf needed)", value=default_name)
         output_pdf = f"{safe_filename(out_name)}.pdf"
         cover_pdf = f"{safe_filename(out_name)}_CoverLetter.pdf"
+        st.session_state["output_pdf"] = output_pdf
+        st.session_state["cover_pdf"] = cover_pdf
     
     with col_right:
         st.subheader("🎯 Job Description (for AI)")
@@ -664,3 +667,108 @@ def main():
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ Error: {str(e)}")
+
+    st.divider()
+
+    # ============== PDF GENERATION SECTION ==============
+    st.header("📄 Generate PDFs")
+
+    pdf_col1, pdf_col2 = st.columns(2)
+    output_pdf = st.session_state.get("output_pdf")
+    cover_pdf = st.session_state.get("cover_pdf")
+
+    with pdf_col1:
+        if st.button("⚙️ Generate Resume PDF", use_container_width=True):
+            with st.spinner("📄 Generating resume PDF..."):
+                try:
+                    # Parse and check data before generating
+                    raw_data = json.loads(st.session_state["edited_json"])
+
+                    # Handle nested structure
+                    if "resume_json" in raw_data:
+                        data = raw_data["resume_json"]
+                    else:
+                        data = raw_data
+
+                    # Debug: Show what we're about to use
+                    st.info(
+                        "📊 Using data with "
+                        f"{len(data.get('experience', []))} experience entries, "
+                        f"{len(data.get('education', []))} education entries"
+                    )
+
+                    # Save to file
+                    JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+                    if not output_pdf:
+                        st.error("❌ Output filename not set. Please enter a filename first.")
+                        return
+
+                    create_resume_pdf(json_path=str(JSON_PATH), output_path=output_pdf)
+
+                    st.success("✅ Resume PDF generated successfully!")
+
+                    # Show download button
+                    if Path(output_pdf).exists():
+                        with open(output_pdf, "rb") as f:
+                            st.download_button(
+                                "⬇️ Download Resume PDF",
+                                data=f,
+                                file_name=output_pdf,
+                                mime="application/pdf",
+                                use_container_width=True
+                            )
+                except json.JSONDecodeError:
+                    st.error("❌ Invalid JSON. Please fix syntax errors in editor.")
+                except Exception as e:
+                    st.error(f"❌ Error generating PDF: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
+
+    with pdf_col2:
+        if st.button("📝 Generate Cover Letter PDF", use_container_width=True):
+            with st.spinner("📝 Generating cover letter PDF..."):
+                try:
+                    raw_data = json.loads(st.session_state["edited_json"])
+
+                    # Handle nested structure
+                    if "resume_json" in raw_data:
+                        data = raw_data["resume_json"]
+                    else:
+                        data = raw_data
+
+                    if "cover_letter" not in data:
+                        st.warning("⚠️ No cover letter found in JSON. Use 'AI: Generate Cover Letter' first!")
+                        st.info("💡 Click the '✍️ AI: Generate Cover Letter' button above to create a cover letter first.")
+                    else:
+                        # Save to file
+                        JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+                        if not cover_pdf:
+                            st.error("❌ Cover letter filename not set. Please enter a filename first.")
+                            return
+
+                        create_cover_letter_pdf(json_path=str(JSON_PATH), output_path=cover_pdf)
+
+                        st.success("✅ Cover letter PDF generated!")
+
+                        # Show download button
+                        if Path(cover_pdf).exists():
+                            with open(cover_pdf, "rb") as f:
+                                st.download_button(
+                                    "⬇️ Download Cover Letter PDF",
+                                    data=f,
+                                    file_name=cover_pdf,
+                                    mime="application/pdf",
+                                    use_container_width=True
+                                )
+                except json.JSONDecodeError:
+                    st.error("❌ Invalid JSON in editor.")
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
+
+
+if __name__ == "__main__":
+    main()
