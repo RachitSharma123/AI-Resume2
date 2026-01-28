@@ -474,6 +474,8 @@ def main():
         out_name = st.text_input("📁 Output filename (no .pdf needed)", value=default_name)
         output_pdf = f"{safe_filename(out_name)}.pdf"
         cover_pdf = f"{safe_filename(out_name)}_CoverLetter.pdf"
+        st.session_state["output_pdf"] = output_pdf
+        st.session_state["cover_pdf"] = cover_pdf
     
     with col_right:
         st.subheader("🎯 Job Description (for AI)")
