@@ -651,3 +651,16 @@ def main():
                             st.session_state["ats_results"],
                             st.session_state["job_desc"]
                         )
+                        
+                        if "resume_json" in raw_data:
+                            raw_data["resume_json"] = improved
+                        else:
+                            raw_data = improved
+                        
+                        st.session_state["edited_json"] = json.dumps(raw_data, indent=2, ensure_ascii=False)
+                        JSON_PATH.write_text(st.session_state["edited_json"], encoding="utf-8")
+                        
+                        st.success("✅ Resume improved based on ATS analysis! Run ATS analysis again to see new score.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
