@@ -79,7 +79,7 @@ def get_openai_client() -> OpenAI:
             api_key = None
     return OpenAI(api_key=api_key or "")
 
-def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str = "gpt-4o-mini") -> dict:
+def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
     """Tailor resume to match job description with ATS optimization."""
     system_prompt = (
           "You are an elite ATS-optimization and hiring strategist.\n"
@@ -130,28 +130,57 @@ def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: s
         raise Exception(f"AI Tailor failed: {str(e)}")
 
 
-def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model: str = "gpt-4o-mini") -> dict:
+def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
     """Generate cover letter JSON from resume and job description."""
     system_prompt = (
-        "You write concise, high-converting cover letters for professional roles.\n"
-        "Return ONLY valid JSON (no markdown, no backticks, no extra text).\n\n"
-        "Task: Create a 'cover_letter' object with these keys:\n"
-        "- date: 'AUTO'\n"
-        "- recipient: string (e.g., 'Hiring Manager')\n"
-        "- company: string\n"
-        "- role_title: string\n"
-        "- company_address: string (optional)\n"
-        "- subject: string (e.g., 'Re: Application for [Role Title]')\n"
-        "- opening: string (first paragraph after greeting)\n"
-        "- body_points: list of 3-4 paragraphs (NOT bullet points)\n"
-        "- closing: string (e.g., 'Kind regards,')\n"
-        "- signature_name: string (from resume)\n"
-        "- phone_number: string (phone only, no email)\n"
-        "- email: string\n\n"
-        "Use resume + job description for alignment. Mirror JD language but sound like a human.\n"
-        "Keep it professional, 350 words, and focused on value proposition + willingness to grow as an employee."
-        "Return ONLY the JSON object. NO markdown, NO explanations.\n"
-        
+        "You are a professional career coach helping someone write an authentic, human cover letter.\n\n"
+        "CRITICAL: You must return the FULL resume JSON with a 'cover_letter' section added to it.\n"
+        "Do NOT return just the cover_letter object alone - return the complete resume_json with cover_letter inside.\n\n"
+        "Cover letter requirements:\n"
+        "- Write like a real person, not a corporate robot\n"
+        "- Be conversational but professional - like you're writing to a colleague\n"
+        "- Show genuine enthusiasm WITHOUT buzzwords like 'passionate', 'dynamic', 'synergy'\n"
+        "- Use 'I' naturally - don't be afraid of first person\n"
+        "- Total length: 250-350 words (excluding name, address, date)\n"
+        "- 3-4 SHORT paragraphs in body_points (not walls of text)\n"
+        "- Each paragraph should be 2-4 sentences max\n"
+        "- Focus on: what you've done → why you'd be good at this → why you actually want this job\n\n"
+        "Tone guidelines:\n"
+        "❌ BAD: 'I am highly motivated to leverage my extensive skillset...'\n"
+        "✅ GOOD: 'I've spent the last three years doing X, and I'm excited to bring that experience to...'\n\n"
+        "❌ BAD: 'My dynamic background in synergizing cross-functional teams...'\n"
+        "✅ GOOD: 'In my current role, I work with teams across the company to...'\n\n"
+        "Structure to return:\n"
+        "{\n"
+        "  \"name\": \"[from resume]\",\n"
+        "  \"contact\": \"[from resume]\",\n"
+        "  \"career_objective\": \"[from resume]\",\n"
+        "  \"skills_snapshot\": [...from resume...],\n"
+        "  \"experience\": [...from resume...],\n"
+        "  \"education\": [...from resume...],\n"
+        "  \"certifications\": [...from resume...],\n"
+        "  \"references\": [...from resume...],\n"
+        "  \"cover_letter\": {\n"
+        "    \"date\": \"AUTO\",\n"
+        "    \"recipient\": \"Hiring Manager\",\n"
+        "    \"company\": \"[extract from JD]\",\n"
+        "    \"role_title\": \"[extract from JD]\",\n"
+        "    \"company_address\": \"\",\n"
+        "    \"subject\": \"Re: Application for [Role Title]\",\n"
+        "    \"opening\": \"Dear Hiring Manager,\",\n"
+        "    \"body_points\": [\n"
+        "      \"First paragraph: Hook - why this role caught your eye, brief intro\",\n"
+        "      \"Second paragraph: Your relevant experience and achievements\",\n"
+        "      \"Third paragraph: Why you're a good fit for THIS company specifically\",\n"
+        "      \"Fourth paragraph: Closing - enthusiasm, next steps\"\n"
+        "    ],\n"
+        "    \"closing\": \"Best regards,\",\n"
+        "    \"signature_name\": \"[from resume name]\",\n"
+        "    \"phone_number\": \"[from resume contact]\",\n"
+        "    \"email\": \"[from resume contact]\"\n"
+        "  }\n"
+        "}\n\n"
+        "Return ONLY the complete JSON. NO markdown, NO explanations, NO extra text.\n"
     )
 
     user_prompt = json.dumps({
@@ -167,20 +196,29 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.7
+            temperature=0.8  # Higher temp for more natural, less robotic writing
         )
         
         text = resp.choices[0].message.content.strip()
-        out = _parse_ai_json(text)
-        return out.get("cover_letter", out)
+        result = _parse_ai_json(text)
+        
+        # Validate that cover_letter exists in the result
+        if "cover_letter" not in result:
+            # If AI only returned cover_letter object, wrap it properly
+            if "date" in result or "recipient" in result:
+                # This is just a cover_letter object, need to merge with resume
+                resume_json["cover_letter"] = result
+                return resume_json
+        
+        return result
     except Exception as e:
         raise Exception(f"Cover letter generation failed: {str(e)}")
 
 
-def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt-4o-mini") -> dict:
+def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "o3-mini") -> dict:
     """Analyze resume against job description and provide ATS score."""
     system_prompt = (
-        "You are an ATS (Applicant Tracking System) analyzer.\n"
+        "You are an ATS (Applicant Tracking System) analyzer with deep reasoning capabilities.\n"
         "Analyze the resume against the job description and provide:\n\n"
         "Return ONLY valid JSON with this exact structure:\n"
         "{\n"
@@ -328,7 +366,7 @@ def call_ai_rewrite_objective(current_objective: str, job_description: str, mode
     system_prompt = (
         "Rewrite the career objective to be highly targeted to the job description.\n"
         "Requirements:\n"
-        "- 3-6 sentences maximum\n"
+        "- 2-3 sentences maximum\n"
         "- Use keywords from job description\n"
         "- Show clear value proposition\n"
         "- Sound confident but not arrogant\n"
