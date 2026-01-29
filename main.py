@@ -792,260 +792,84 @@ def main():
 
 st.divider()
     
-    # ============== RESUME SECTION CUSTOMIZATION ==============
+    # ============== CONSOLIDATED CUSTOMIZATION MENU ==============
     
-with st.expander("⚙️ Resume Section Settings", expanded=False):
-    st.header("📋 Customize Resume Sections")
-    st.caption("Toggle sections on/off and customize content")
+with st.expander("⚙️ Resume & Cover Letter Settings", expanded=False):
+    st.header("🎛️ Customize Your Documents")
+    st.caption("All customization options in one place")
     
-    # Load current data
-    try:
-        raw_data = json.loads(st.session_state.get("edited_json", "{}"))
-        if "resume_json" in raw_data:
-            data = raw_data["resume_json"]
-            if isinstance(data, dict) and "resume_json" in data:
-                data = data["resume_json"]
-        else:
-            data = raw_data
-        
-        st.success(f"✅ Editing resume for: {data.get('name', 'N/A')}")
-        
-        # Section toggles
-        st.subheader("📋 Section Visibility")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            include_objective = st.checkbox("Career Objective", value=bool(data.get("career_objective")), key="inc_obj")
-            include_skills = st.checkbox("Skills Snapshot", value=bool(data.get("skills_snapshot")), key="inc_skills")
-            include_experience = st.checkbox("Experience", value=bool(data.get("experience")), key="inc_exp")
-        
-        with col2:
-            include_education = st.checkbox("Education", value=bool(data.get("education")), key="inc_edu")
-            include_certs = st.checkbox("Certifications", value=bool(data.get("certifications")), key="inc_cert")
-            include_refs = st.checkbox("References", value=bool(data.get("references")), key="inc_ref")
-        
-        with col3:
-            include_projects = st.checkbox("Projects (if available)", value=bool(data.get("project_highlights")), key="inc_proj")
-        
-        st.divider()
-        
-        # Career Objective customization
-        if include_objective:
-            st.subheader("🎯 Career Objective")
-            career_obj = st.text_area(
-                "Career Objective",
-                value=data.get("career_objective", ""),
-                height=120,
-                help="2-3 sentences that summarize your professional goals and value proposition"
-            )
-        else:
-            career_obj = ""
-        
-        st.divider()
-        
-        # Experience customization
-        if include_experience:
-            st.subheader("💼 Experience")
-            experience_list = data.get("experience", [])
-            
-            for i, exp in enumerate(experience_list):
-                with st.expander(f"Job {i+1}: {exp.get('company', 'Company')}", expanded=False):
-                    company = st.text_input(f"Company", value=exp.get("company", ""), key=f"exp_comp_{i}")
-                    role_line = st.text_input(f"Role & Duration", value=exp.get("role_line", ""), key=f"exp_role_{i}")
-                    
-                    bullets = exp.get("bullets", [])
-                    st.caption("Bullet Points:")
-                    updated_bullets = []
-                    
-                    for j, bullet in enumerate(bullets):
-                        bullet_text = st.text_area(
-                            f"Bullet {j+1}",
-                            value=bullet,
-                            height=80,
-                            key=f"exp_bullet_{i}_{j}"
-                        )
-                        if bullet_text.strip():
-                            updated_bullets.append(bullet_text)
-                    
-                    experience_list[i] = {
-                        "company": company,
-                        "role_line": role_line,
-                        "bullets": updated_bullets
-                    }
-        
-        st.divider()
-        
-        # Save changes button
-        if st.button("💾 Save Resume Section Changes", use_container_width=True, type="primary"):
-            # Update data with customizations
-            if not include_objective:
-                data.pop("career_objective", None)
-            else:
-                data["career_objective"] = career_obj
-            
-            if not include_skills:
-                data.pop("skills_snapshot", None)
-            
-            if not include_experience:
-                data.pop("experience", None)
-            
-            if not include_education:
-                data.pop("education", None)
-            
-            if not include_certs:
-                data.pop("certifications", None)
-            
-            if not include_refs:
-                data.pop("references", None)
-            
-            if not include_projects:
-                data.pop("project_highlights", None)
-            
-            # Update session state
+    # Tab-based organization within the expander
+    settings_tab1, settings_tab2, settings_tab3 = st.tabs([
+        "📋 Resume Sections", 
+        "✉️ Cover Letter", 
+        "🎨 PDF Styling"
+    ])
+    
+    # ========== TAB 1: RESUME SECTIONS ==========
+    with settings_tab1:
+        try:
+            raw_data = json.loads(st.session_state.get("edited_json", "{}"))
             if "resume_json" in raw_data:
-                raw_data["resume_json"] = data
+                data = raw_data["resume_json"]
+                if isinstance(data, dict) and "resume_json" in data:
+                    data = data["resume_json"]
             else:
-                raw_data = data
+                data = raw_data
             
-            st.session_state["edited_json"] = json.dumps(raw_data, indent=2, ensure_ascii=False)
-            st.success("✅ Resume sections updated! You can now generate the PDF.")
-            st.rerun()
-    
-    except Exception as e:
-        st.error(f"❌ Error loading resume data: {str(e)}")
-
-st.divider()
-    
-    # ============== COVER LETTER CUSTOMIZATION SECTION ==============
-    
-with st.expander("✉️ Cover Letter Customization", expanded=False):
-    st.header("📝 Customize Cover Letter Sections")
-    st.caption("Edit your cover letter content before generating the PDF")
-    
-    # Load current data
-    try:
-        raw_data = json.loads(st.session_state.get("edited_json", "{}"))
-        if "resume_json" in raw_data:
-            data = raw_data["resume_json"]
-            if isinstance(data, dict) and "resume_json" in data:
-                data = data["resume_json"]
-        else:
-            data = raw_data
-        
-        cover_letter = data.get("cover_letter", {})
-        
-        if not cover_letter:
-            st.info("💡 No cover letter found. Generate one first using the '✍️ AI: Generate Cover Letter' button above.")
-        else:
-            st.success(f"✅ Cover letter loaded for {data.get('name', 'N/A')}")
+            st.success(f"✅ Editing resume for: {data.get('name', 'N/A')}")
             
             # Section toggles
-            st.subheader("📋 Section Settings")
+            st.subheader("📋 Section Visibility")
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                include_date = st.checkbox("Include Date", value=True)
-                include_recipient = st.checkbox("Include Recipient Info", value=True)
+                include_objective = st.checkbox("Career Objective", value=bool(data.get("career_objective")), key="inc_obj")
+                include_skills = st.checkbox("Skills Snapshot", value=bool(data.get("skills_snapshot")), key="inc_skills")
+            
             with col2:
-                include_subject = st.checkbox("Include Subject Line", value=True)
-                include_contact = st.checkbox("Include Contact Info", value=True)
+                include_experience = st.checkbox("Experience", value=bool(data.get("experience")), key="inc_exp")
+                include_education = st.checkbox("Education", value=bool(data.get("education")), key="inc_edu")
+            
             with col3:
-                include_company_addr = st.checkbox("Include Company Address", value=bool(cover_letter.get("company_address")))
+                include_certs = st.checkbox("Certifications", value=bool(data.get("certifications")), key="inc_cert")
+                include_refs = st.checkbox("References", value=bool(data.get("references")), key="inc_ref")
             
             st.divider()
             
-            # Header customization
-            st.subheader("📋 Header Information")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                date_val = st.text_input("Date", value=cover_letter.get("date", "AUTO"), help="Use AUTO for today's date")
-                recipient = st.text_input("Recipient", value=cover_letter.get("recipient", "Hiring Manager"))
-                company = st.text_input("Company", value=cover_letter.get("company", ""))
-            
-            with col2:
-                role_title = st.text_input("Role Title", value=cover_letter.get("role_title", ""))
-                company_address = st.text_area("Company Address", value=cover_letter.get("company_address", ""), height=80)
-            
-            subject = st.text_input("Subject Line", value=cover_letter.get("subject", ""))
-            opening = st.text_input("Opening Greeting", value=cover_letter.get("opening", "Dear Hiring Manager,"))
-            
-            st.divider()
-            
-            # Body paragraphs
-            st.subheader("📝 Letter Body")
-            body_points = cover_letter.get("body_points", [])
-            
-            if not body_points:
-                body_points = ["", "", "", ""]
-            
-            updated_body_points = []
-            
-            for i, paragraph in enumerate(body_points):
-                with st.expander(f"Paragraph {i+1}", expanded=False):
-                    para_text = st.text_area(
-                        f"Content",
-                        value=paragraph,
-                        height=150,
-                        key=f"cl_para_{i}",
-                        help="Write naturally, like you're having a conversation"
-                    )
-                    updated_body_points.append(para_text)
-                    
-                    # Word count for this paragraph
-                    word_count = len(re.findall(r'\b[\w\']+\b', para_text))
-                    st.caption(f"📊 Words: {word_count}")
-            
-            # Add paragraph button
-            if st.button("➕ Add Another Paragraph"):
-                updated_body_points.append("")
-            
-            # Calculate total word count
-            total_words = sum(len(re.findall(r'\b[\w\']+\b', p)) for p in updated_body_points)
-            st.metric("Total Body Word Count", total_words, help="Aim for 500-600 words")
-            
-            if total_words < 450:
-                st.warning("⚠️ Cover letter might be too short. Aim for 500-600 words.")
-            elif total_words > 650:
-                st.warning("⚠️ Cover letter might be too long. Try to keep it under 600 words.")
+            # Career Objective customization
+            if include_objective:
+                st.subheader("🎯 Career Objective")
+                career_obj = st.text_area(
+                    "Career Objective",
+                    value=data.get("career_objective", ""),
+                    height=120,
+                    help="2-3 sentences that summarize your professional goals and value proposition"
+                )
             else:
-                st.success("✅ Word count looks good!")
+                career_obj = ""
             
-            st.divider()
-            
-            # Footer customization
-            st.subheader("📋 Signature")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                closing = st.text_input("Closing", value=cover_letter.get("closing", "Best regards,"))
-                signature_name = st.text_input("Signature Name", value=cover_letter.get("signature_name", data.get("name", "")))
-            
-            with col2:
-                phone_number = st.text_input("Phone Number", value=cover_letter.get("phone_number", ""))
-                email = st.text_input("Email", value=cover_letter.get("email", ""))
-            
-            st.divider()
-            
-            # Save changes button
-            if st.button("💾 Save Cover Letter Changes", use_container_width=True, type="primary"):
-                # Update cover letter in data
-                updated_cover_letter = {
-                    "date": date_val if include_date else "",
-                    "recipient": recipient if include_recipient else "",
-                    "company": company,
-                    "role_title": role_title,
-                    "company_address": company_address if include_company_addr else "",
-                    "subject": subject if include_subject else "",
-                    "opening": opening,
-                    "body_points": [p for p in updated_body_points if p.strip()],
-                    "closing": closing,
-                    "signature_name": signature_name if include_contact else "",
-                    "phone_number": phone_number if include_contact else "",
-                    "email": email if include_contact else ""
-                }
+            # Save changes button for resume
+            if st.button("💾 Save Resume Section Changes", use_container_width=True, type="secondary", key="save_resume"):
+                # Update data with customizations
+                if not include_objective:
+                    data.pop("career_objective", None)
+                else:
+                    data["career_objective"] = career_obj
                 
-                data["cover_letter"] = updated_cover_letter
+                if not include_skills:
+                    data.pop("skills_snapshot", None)
+                
+                if not include_experience:
+                    data.pop("experience", None)
+                
+                if not include_education:
+                    data.pop("education", None)
+                
+                if not include_certs:
+                    data.pop("certifications", None)
+                
+                if not include_refs:
+                    data.pop("references", None)
                 
                 # Update session state
                 if "resume_json" in raw_data:
@@ -1054,50 +878,204 @@ with st.expander("✉️ Cover Letter Customization", expanded=False):
                     raw_data = data
                 
                 st.session_state["edited_json"] = json.dumps(raw_data, indent=2, ensure_ascii=False)
-                st.success("✅ Cover letter updated! You can now generate the PDF.")
+                st.success("✅ Resume sections updated!")
                 st.rerun()
+        
+        except Exception as e:
+            st.error(f"❌ Error loading resume data: {str(e)}")
     
-    except Exception as e:
-        st.error(f"❌ Error loading cover letter: {str(e)}")
+    # ========== TAB 2: COVER LETTER ==========
+    with settings_tab2:
+        try:
+            raw_data = json.loads(st.session_state.get("edited_json", "{}"))
+            if "resume_json" in raw_data:
+                data = raw_data["resume_json"]
+                if isinstance(data, dict) and "resume_json" in data:
+                    data = data["resume_json"]
+            else:
+                data = raw_data
+            
+            cover_letter = data.get("cover_letter", {})
+            
+            if not cover_letter:
+                st.info("💡 No cover letter found. Generate one first using the '✍️ AI: Generate Cover Letter' button.")
+            else:
+                st.success(f"✅ Cover letter loaded for {data.get('name', 'N/A')}")
+                
+                # Section toggles
+                st.subheader("📋 Section Settings")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    include_date = st.checkbox("Include Date", value=True, key="cl_date")
+                    include_recipient = st.checkbox("Include Recipient Info", value=True, key="cl_recipient")
+                with col2:
+                    include_subject = st.checkbox("Include Subject Line", value=True, key="cl_subject")
+                    include_contact = st.checkbox("Include Contact Info", value=True, key="cl_contact")
+                with col3:
+                    include_company_addr = st.checkbox("Include Company Address", value=bool(cover_letter.get("company_address")), key="cl_addr")
+                
+                st.divider()
+                
+                # Header customization
+                st.subheader("📋 Header Information")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    date_val = st.text_input("Date", value=cover_letter.get("date", "AUTO"), help="Use AUTO for today's date", key="cl_date_val")
+                    recipient = st.text_input("Recipient", value=cover_letter.get("recipient", "Hiring Manager"), key="cl_recip")
+                    company = st.text_input("Company", value=cover_letter.get("company", ""), key="cl_comp")
+                
+                with col2:
+                    role_title = st.text_input("Role Title", value=cover_letter.get("role_title", ""), key="cl_role")
+                    company_address = st.text_area("Company Address", value=cover_letter.get("company_address", ""), height=80, key="cl_addr_val")
+                
+                subject = st.text_input("Subject Line", value=cover_letter.get("subject", ""), key="cl_subj")
+                opening = st.text_input("Opening Greeting", value=cover_letter.get("opening", "Dear Hiring Manager,"), key="cl_open")
+                
+                st.divider()
+                
+                # Body paragraphs
+                st.subheader("📝 Letter Body")
+                body_points = cover_letter.get("body_points", [])
+                
+                if not body_points:
+                    body_points = ["", "", "", ""]
+                
+                updated_body_points = []
+                
+                for i, paragraph in enumerate(body_points):
+                    with st.expander(f"Paragraph {i+1}", expanded=False):
+                        para_text = st.text_area(
+                            f"Content",
+                            value=paragraph,
+                            height=150,
+                            key=f"cl_para_{i}",
+                            help="Write naturally, like you're having a conversation"
+                        )
+                        updated_body_points.append(para_text)
+                        
+                        # Word count for this paragraph
+                        word_count = len(re.findall(r'\b[\w\']+\b', para_text))
+                        st.caption(f"📊 Words: {word_count}")
+                
+                # Add paragraph button
+                if st.button("➕ Add Another Paragraph", key="cl_add_para"):
+                    updated_body_points.append("")
+                
+                # Calculate total word count
+                total_words = sum(len(re.findall(r'\b[\w\']+\b', p)) for p in updated_body_points)
+                st.metric("Total Body Word Count", total_words, help="Aim for 500-600 words")
+                
+                if total_words < 450:
+                    st.warning("⚠️ Cover letter might be too short. Aim for 500-600 words.")
+                elif total_words > 650:
+                    st.warning("⚠️ Cover letter might be too long. Try to keep it under 600 words.")
+                else:
+                    st.success("✅ Word count looks good!")
+                
+                st.divider()
+                
+                # Footer customization
+                st.subheader("📋 Signature")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    closing = st.text_input("Closing", value=cover_letter.get("closing", "Best regards,"), key="cl_close")
+                    signature_name = st.text_input("Signature Name", value=cover_letter.get("signature_name", data.get("name", "")), key="cl_sig")
+                
+                with col2:
+                    phone_number = st.text_input("Phone Number", value=cover_letter.get("phone_number", ""), key="cl_phone")
+                    email = st.text_input("Email", value=cover_letter.get("email", ""), key="cl_email")
+                
+                st.divider()
+                
+                # Save changes button
+                if st.button("💾 Save Cover Letter Changes", use_container_width=True, type="secondary", key="save_cl"):
+                    # Update cover letter in data
+                    updated_cover_letter = {
+                        "date": date_val if include_date else "",
+                        "recipient": recipient if include_recipient else "",
+                        "company": company,
+                        "role_title": role_title,
+                        "company_address": company_address if include_company_addr else "",
+                        "subject": subject if include_subject else "",
+                        "opening": opening,
+                        "body_points": [p for p in updated_body_points if p.strip()],
+                        "closing": closing,
+                        "signature_name": signature_name if include_contact else "",
+                        "phone_number": phone_number if include_contact else "",
+                        "email": email if include_contact else ""
+                    }
+                    
+                    data["cover_letter"] = updated_cover_letter
+                    
+                    # Update session state
+                    if "resume_json" in raw_data:
+                        raw_data["resume_json"] = data
+                    else:
+                        raw_data = data
+                    
+                    st.session_state["edited_json"] = json.dumps(raw_data, indent=2, ensure_ascii=False)
+                    st.success("✅ Cover letter updated!")
+                    st.rerun()
+        
+        except Exception as e:
+            st.error(f"❌ Error loading cover letter: {str(e)}")
+    
+    # ========== TAB 3: PDF STYLING ==========
+    with settings_tab3:
+        st.subheader("🎨 PDF Appearance")
+        st.caption("Customize fonts and styling for your PDFs")
+        
+        font_col1, font_col2 = st.columns(2)
+        
+        with font_col1:
+            font_scale = st.slider(
+                "📏 Font Size Scale",
+                min_value=0.5,
+                max_value=1.5,
+                value=st.session_state.get("font_scale", 1.0),
+                step=0.05,
+                help="Adjust the overall size of all fonts in the PDF. 1.0 = normal, 0.8 = smaller, 1.2 = larger",
+                key="pdf_font_scale"
+            )
+            st.session_state["font_scale"] = font_scale
+        
+        with font_col2:
+            font_family = st.selectbox(
+                "🔤 Font Family",
+                options=["Helvetica", "Times", "Courier"],
+                index=["Helvetica", "Times", "Courier"].index(st.session_state.get("font_family", "Helvetica")),
+                help="Choose the font style for your PDF",
+                key="pdf_font_family"
+            )
+            st.session_state["font_family"] = font_family
+        
+        st.info(f"Current settings: Font size at {int(font_scale * 100)}%, using {font_family} font")
 
 st.divider()
     
     # ============== PDF GENERATION SECTION ==============
     
-with st.expander("🔞 Stuff Generator", expanded=True):
-      st.header("📄 Generate PDFs")
+with st.expander("📄 PDF Generator", expanded=True):
+      st.header("📥 Generate & Download Your Documents")
+      st.caption("One-click generation with automatic download")
       
-      # Font customization controls
-      st.subheader("🎨 Customize PDF Appearance")
+      # Get font settings from session state
+      font_scale = st.session_state.get("font_scale", 1.0)
+      font_family = st.session_state.get("font_family", "Helvetica")
       
-      font_col1, font_col2 = st.columns(2)
-      
-      with font_col1:
-          font_scale = st.slider(
-              "📏 Font Size Scale",
-              min_value=0.5,
-              max_value=1.5,
-              value=1.0,
-              step=0.05,
-              help="Adjust the overall size of all fonts in the PDF. 1.0 = normal, 0.8 = smaller, 1.2 = larger"
-          )
-      
-      with font_col2:
-          font_family = st.selectbox(
-              "🔤 Font Family",
-              options=["Helvetica", "Times", "Courier"],
-              index=0,
-              help="Choose the font style for your PDF"
-          )
-      
-      st.info(f"Current settings: Font size at {int(font_scale * 100)}%, using {font_family} font")
+      st.info(f"📊 Current PDF Settings: {int(font_scale * 100)}% font size, {font_family} font")
+      st.caption("💡 Tip: Change settings in '⚙️ Resume & Cover Letter Settings' → 'PDF Styling' tab")
       
       st.divider()
       
       pdf_col1, pdf_col2 = st.columns(2)
     
 with pdf_col1:
-        if st.button("⚙️ Generate Resume PDF", use_container_width=True):
+        st.subheader("📄 Resume PDF")
+        if st.button("⚙️ Generate & Download Resume", use_container_width=True, type="primary", key="gen_resume"):
             with st.spinner("📄 Generating resume PDF..."):
                 try:
                     raw_data = json.loads(st.session_state["edited_json"])
@@ -1110,39 +1088,54 @@ with pdf_col1:
                     else:
                         data = raw_data
                     
-                    st.info(f"📊 Using data with {len(data.get('experience', []))} experience entries, {len(data.get('education', []))} education entries")
-                    
-                    JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
-                    
-                    # Define output path for resume PDF
-                    output_pdf = "Rachit_Sharma_Resume_Generated.pdf"
-                    create_resume_pdf(
-                        json_path=str(JSON_PATH), 
-                        output_path=output_pdf,
-                        font_scale=font_scale,
-                        font_family=font_family
-                    )
-                    
-                    st.success("✅ Resume PDF generated successfully!")
-                    
-                    if Path(output_pdf).exists():
-                        with open(output_pdf, "rb") as f:
-                            st.download_button(
-                                "⬇️ Download Resume PDF",
-                                data=f,
-                                file_name=output_pdf,
-                                mime="application/pdf",
-                                use_container_width=True
-                            )
+                    # Validate data
+                    if not data.get("name"):
+                        st.error("❌ No resume data found. Please load your resume JSON first.")
+                    else:
+                        st.info(f"📊 Generating PDF for {data.get('name')}")
+                        
+                        JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
+                        
+                        # Define output path for resume PDF
+                        output_pdf = "Rachit_Sharma_Resume_Generated.pdf"
+                        create_resume_pdf(
+                            json_path=str(JSON_PATH), 
+                            output_path=output_pdf,
+                            font_scale=font_scale,
+                            font_family=font_family
+                        )
+                        
+                        st.success("✅ Resume PDF generated successfully!")
+                        
+                        if Path(output_pdf).exists():
+                            with open(output_pdf, "rb") as f:
+                                pdf_bytes = f.read()
+                                st.download_button(
+                                    "⬇️ Download Resume PDF",
+                                    data=pdf_bytes,
+                                    file_name=output_pdf,
+                                    mime="application/pdf",
+                                    use_container_width=True,
+                                    key="download_resume"
+                                )
+                            
+                            # Show file size
+                            file_size = len(pdf_bytes) / 1024
+                            st.caption(f"📊 File size: {file_size:.1f} KB")
+                        else:
+                            st.error("❌ PDF file was not created. Please try again.")
+                            
                 except json.JSONDecodeError:
                     st.error("❌ Invalid JSON. Please fix syntax errors in editor.")
                 except Exception as e:
                     st.error(f"❌ Error generating PDF: {str(e)}")
                     import traceback
-                    st.code(traceback.format_exc())
+                    with st.expander("🔍 Error Details"):
+                        st.code(traceback.format_exc())
     
 with pdf_col2:
-        if st.button("📝 Generate Cover Letter PDF", use_container_width=True):
+        st.subheader("📝 Cover Letter PDF")
+        if st.button("📝 Generate & Download Cover Letter", use_container_width=True, type="primary", key="gen_coverletter"):
             with st.spinner("📝 Generating cover letter PDF..."):
                 try:
                     raw_data = json.loads(st.session_state["edited_json"])
@@ -1154,10 +1147,12 @@ with pdf_col2:
                     else:
                         data = raw_data
                     
-                    if "cover_letter" not in data:
-                        st.warning("⚠️ No cover letter found in JSON. Use 'AI: Generate Cover Letter' first!")
+                    if "cover_letter" not in data or not data["cover_letter"]:
+                        st.warning("⚠️ No cover letter found in JSON.")
                         st.info("💡 Click the '✍️ AI: Generate Cover Letter' button above to create a cover letter first.")
                     else:
+                        st.info(f"📊 Generating cover letter for {data.get('name')}")
+                        
                         JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
                         
                         # Define output path for cover letter PDF
@@ -1173,19 +1168,33 @@ with pdf_col2:
                         
                         if Path(cover_pdf).exists():
                             with open(cover_pdf, "rb") as f:
+                                pdf_bytes = f.read()
                                 st.download_button(
                                     "⬇️ Download Cover Letter PDF",
-                                    data=f,
+                                    data=pdf_bytes,
                                     file_name=cover_pdf,
                                     mime="application/pdf",
-                                    use_container_width=True
+                                    use_container_width=True,
+                                    key="download_coverletter"
                                 )
+                            
+                            # Show file size and word count if available
+                            file_size = len(pdf_bytes) / 1024
+                            st.caption(f"📊 File size: {file_size:.1f} KB")
+                            
+                            if "body_word_count" in data.get("cover_letter", {}):
+                                word_count = data["cover_letter"]["body_word_count"]
+                                st.caption(f"📝 Body word count: {word_count} words")
+                        else:
+                            st.error("❌ PDF file was not created. Please try again.")
+                            
                 except json.JSONDecodeError:
                     st.error("❌ Invalid JSON in editor.")
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)}")
                     import traceback
-                    st.code(traceback.format_exc())
+                    with st.expander("🔍 Error Details"):
+                        st.code(traceback.format_exc())
 
 
 if __name__ == "__main__":
