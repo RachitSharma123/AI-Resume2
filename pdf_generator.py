@@ -449,7 +449,7 @@ def create_cover_letter_pdf(json_path="resume_data.json",
 
     # Word count calculation
     def wc_count(text: str) -> int:
-        return len(re.findall(r"\\b[\\w']+\\b", text or ""))
+        return len(re.findall(r"\b[\w']+\b", text or ""))
 
     wc_text = " ".join([
         str(date_val),
