@@ -209,41 +209,26 @@ def create_resume_pdf(json_path="resume_data.json",
     y = new_page_if_needed(y)
     c.setFont(font_bold, font_section_title)
     c.drawString(left, y, "EDUCATION")
-    y -= (14 * font_scale + MIN_LINE_GAP + 3)
-
-    col_gap = 0.6 * cm
-    col_w = (content_w - col_gap) / 2
-    x1 = left
-    x2 = left + col_w + col_gap
+    y -= (14 * font_scale + MIN_LINE_GAP)
 
     edu_items = data.get("education", []) or []
-
-    i = 0
-    while i < len(edu_items):
-        if y < bottom + 4 * cm:
-            c.showPage()
-            draw_page_border(c, PAGE_W, PAGE_H)
-            y = PAGE_H - top
-
-        left_item = edu_items[i]
-        right_item = edu_items[i + 1] if (i + 1) < len(edu_items) else None
-
+    
+    c.setFont(font_regular, font_education)
+    for edu in edu_items:
+        y = new_page_if_needed(y)
+        
+        degree = edu.get("degree", "")
+        details = edu.get("details", "")
+        
+        # Degree on first line
+        c.setFont(font_bold, font_education)
+        c.drawString(left, y, degree)
+        y -= spacing_edu_line
+        
+        # Details on second line
         c.setFont(font_regular, font_education)
-        deg = left_item.get("degree", "")
-        det = left_item.get("details", "")
-
-        c.drawString(x1, y, deg)
-        y_temp = y - spacing_edu_line
-        c.drawString(x1, y_temp, det)
-
-        if right_item:
-            deg2 = right_item.get("degree", "")
-            det2 = right_item.get("details", "")
-            c.drawString(x2, y, deg2)
-            c.drawString(x2, y_temp, det2)
-
-        y = y_temp - spacing_edu_block
-        i += 2
+        c.drawString(left, y, details)
+        y -= spacing_edu_block
 
     # Certifications
     certs = data.get("certifications") or []
@@ -451,6 +436,11 @@ def create_cover_letter_pdf(json_path="resume_data.json",
     def wc_count(text: str) -> int:
         return len(re.findall(r"\b[\w']+\b", text or ""))
 
+    # Calculate word count for body only (excluding header/footer)
+    body_text = " ".join([str(p) for p in body_points])
+    body_word_count = wc_count(body_text)
+    
+    # Calculate total word count (everything)
     wc_text = " ".join([
         str(date_val),
         recipient, company, company_address,
@@ -460,7 +450,10 @@ def create_cover_letter_pdf(json_path="resume_data.json",
         closing,
         signature_name, phone_number, email
     ])
-    cl["word_count"] = wc_count(wc_text)
+    total_word_count = wc_count(wc_text)
+    
+    cl["word_count"] = total_word_count
+    cl["body_word_count"] = body_word_count
     data["cover_letter"] = cl
 
     # Save updated word_count back to file
