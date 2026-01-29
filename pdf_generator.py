@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pdf_generator.py
 import json
 import re
@@ -474,25 +475,3 @@ def create_cover_letter_pdf(json_path="resume_data.json",
 
     c.save()
     print(f"✅ Created cover letter: {output_path}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
