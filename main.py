@@ -677,8 +677,7 @@ def main():
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ Error: {str(e)}")
-
-        # Strengths and Weaknesses
+              # Strengths and Weaknesses
         strength_col, weakness_col = st.columns(2)
 
         with strength_col:
@@ -790,48 +789,72 @@ def main():
                     import traceback
                     st.code(traceback.format_exc())
 
-    st.divider()
 
+st.divider()
+    
     # ============== PDF GENERATION SECTION ==============
-    st.header("📄 Generate PDFs")
-
-    pdf_col1, pdf_col2 = st.columns(2)
-    output_name = st.session_state.get("output_name") or f"Resume_{datetime.now().strftime('%Y%m%d_%H%M')}"
-    output_pdf = st.session_state.get("output_pdf") or f"{safe_filename(output_name)}.pdf"
-    cover_pdf = st.session_state.get("cover_pdf") or f"{safe_filename(output_name)}_CoverLetter.pdf"
-
-    with pdf_col1:
+    
+with st.expander("🔞 Stuff Generator", expanded=True):
+      st.header("📄 Generate PDFs")
+      
+      # Font customization controls
+      st.subheader("🎨 Customize PDF Appearance")
+      
+      font_col1, font_col2 = st.columns(2)
+      
+      with font_col1:
+          font_scale = st.slider(
+              "📏 Font Size Scale",
+              min_value=0.5,
+              max_value=1.5,
+              value=1.0,
+              step=0.05,
+              help="Adjust the overall size of all fonts in the PDF. 1.0 = normal, 0.8 = smaller, 1.2 = larger"
+          )
+      
+      with font_col2:
+          font_family = st.selectbox(
+              "🔤 Font Family",
+              options=["Helvetica", "Times", "Courier"],
+              index=0,
+              help="Choose the font style for your PDF"
+          )
+      
+      st.info(f"Current settings: Font size at {int(font_scale * 100)}%, using {font_family} font")
+      
+      st.divider()
+      
+      pdf_col1, pdf_col2 = st.columns(2)
+    
+with pdf_col1:
         if st.button("⚙️ Generate Resume PDF", use_container_width=True):
             with st.spinner("📄 Generating resume PDF..."):
                 try:
-                    # Parse and check data before generating
                     raw_data = json.loads(st.session_state["edited_json"])
-
+                    
                     # Handle nested structure
                     if "resume_json" in raw_data:
                         data = raw_data["resume_json"]
+                        if isinstance(data, dict) and "resume_json" in data:
+                            data = data["resume_json"]
                     else:
                         data = raw_data
-
-                    # Debug: Show what we're about to use
-                    st.info(
-                        "📊 Using data with "
-                        f"{len(data.get('experience', []))} experience entries, "
-                        f"{len(data.get('education', []))} education entries"
-                    )
-
-                    # Save to file
+                    
+                    st.info(f"📊 Using data with {len(data.get('experience', []))} experience entries, {len(data.get('education', []))} education entries")
+                    
                     JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
-
-                    if not output_pdf:
-                        st.error("❌ Output filename not set. Please enter a filename first.")
-                        return
-
-                    create_resume_pdf(json_path=str(JSON_PATH), output_path=output_pdf)
-
+                    
+                    # Define output path for resume PDF
+                    output_pdf = "Rachit_Sharma_Resume_Generated.pdf"
+                    create_resume_pdf(
+                        json_path=str(JSON_PATH), 
+                        output_path=output_pdf,
+                        font_scale=font_scale,
+                        font_family=font_family
+                    )
+                    
                     st.success("✅ Resume PDF generated successfully!")
-
-                    # Show download button
+                    
                     if Path(output_pdf).exists():
                         with open(output_pdf, "rb") as f:
                             st.download_button(
@@ -847,35 +870,37 @@ def main():
                     st.error(f"❌ Error generating PDF: {str(e)}")
                     import traceback
                     st.code(traceback.format_exc())
-
-    with pdf_col2:
+    
+with pdf_col2:
         if st.button("📝 Generate Cover Letter PDF", use_container_width=True):
             with st.spinner("📝 Generating cover letter PDF..."):
                 try:
                     raw_data = json.loads(st.session_state["edited_json"])
-
-                    # Handle nested structure
+                    
                     if "resume_json" in raw_data:
                         data = raw_data["resume_json"]
+                        if isinstance(data, dict) and "resume_json" in data:
+                            data = data["resume_json"]
                     else:
                         data = raw_data
-
+                    
                     if "cover_letter" not in data:
                         st.warning("⚠️ No cover letter found in JSON. Use 'AI: Generate Cover Letter' first!")
                         st.info("💡 Click the '✍️ AI: Generate Cover Letter' button above to create a cover letter first.")
                     else:
-                        # Save to file
                         JSON_PATH.write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
-
-                        if not cover_pdf:
-                            st.error("❌ Cover letter filename not set. Please enter a filename first.")
-                            return
-
-                        create_cover_letter_pdf(json_path=str(JSON_PATH), output_path=cover_pdf)
-
+                        
+                        # Define output path for cover letter PDF
+                        cover_pdf = "Cover_Letter.pdf"
+                        create_cover_letter_pdf(
+                            json_path=str(JSON_PATH), 
+                            output_path=cover_pdf,
+                            font_scale=font_scale,
+                            font_family=font_family
+                        )
+                        
                         st.success("✅ Cover letter PDF generated!")
-
-                        # Show download button
+                        
                         if Path(cover_pdf).exists():
                             with open(cover_pdf, "rb") as f:
                                 st.download_button(
