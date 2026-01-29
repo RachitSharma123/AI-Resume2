@@ -792,6 +792,276 @@ def main():
 
 st.divider()
     
+    # ============== RESUME SECTION CUSTOMIZATION ==============
+    
+with st.expander("⚙️ Resume Section Settings", expanded=False):
+    st.header("📋 Customize Resume Sections")
+    st.caption("Toggle sections on/off and customize content")
+    
+    # Load current data
+    try:
+        raw_data = json.loads(st.session_state.get("edited_json", "{}"))
+        if "resume_json" in raw_data:
+            data = raw_data["resume_json"]
+            if isinstance(data, dict) and "resume_json" in data:
+                data = data["resume_json"]
+        else:
+            data = raw_data
+        
+        st.success(f"✅ Editing resume for: {data.get('name', 'N/A')}")
+        
+        # Section toggles
+        st.subheader("📋 Section Visibility")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            include_objective = st.checkbox("Career Objective", value=bool(data.get("career_objective")), key="inc_obj")
+            include_skills = st.checkbox("Skills Snapshot", value=bool(data.get("skills_snapshot")), key="inc_skills")
+            include_experience = st.checkbox("Experience", value=bool(data.get("experience")), key="inc_exp")
+        
+        with col2:
+            include_education = st.checkbox("Education", value=bool(data.get("education")), key="inc_edu")
+            include_certs = st.checkbox("Certifications", value=bool(data.get("certifications")), key="inc_cert")
+            include_refs = st.checkbox("References", value=bool(data.get("references")), key="inc_ref")
+        
+        with col3:
+            include_projects = st.checkbox("Projects (if available)", value=bool(data.get("project_highlights")), key="inc_proj")
+        
+        st.divider()
+        
+        # Career Objective customization
+        if include_objective:
+            st.subheader("🎯 Career Objective")
+            career_obj = st.text_area(
+                "Career Objective",
+                value=data.get("career_objective", ""),
+                height=120,
+                help="2-3 sentences that summarize your professional goals and value proposition"
+            )
+        else:
+            career_obj = ""
+        
+        st.divider()
+        
+        # Experience customization
+        if include_experience:
+            st.subheader("💼 Experience")
+            experience_list = data.get("experience", [])
+            
+            for i, exp in enumerate(experience_list):
+                with st.expander(f"Job {i+1}: {exp.get('company', 'Company')}", expanded=False):
+                    company = st.text_input(f"Company", value=exp.get("company", ""), key=f"exp_comp_{i}")
+                    role_line = st.text_input(f"Role & Duration", value=exp.get("role_line", ""), key=f"exp_role_{i}")
+                    
+                    bullets = exp.get("bullets", [])
+                    st.caption("Bullet Points:")
+                    updated_bullets = []
+                    
+                    for j, bullet in enumerate(bullets):
+                        bullet_text = st.text_area(
+                            f"Bullet {j+1}",
+                            value=bullet,
+                            height=80,
+                            key=f"exp_bullet_{i}_{j}"
+                        )
+                        if bullet_text.strip():
+                            updated_bullets.append(bullet_text)
+                    
+                    experience_list[i] = {
+                        "company": company,
+                        "role_line": role_line,
+                        "bullets": updated_bullets
+                    }
+        
+        st.divider()
+        
+        # Save changes button
+        if st.button("💾 Save Resume Section Changes", use_container_width=True, type="primary"):
+            # Update data with customizations
+            if not include_objective:
+                data.pop("career_objective", None)
+            else:
+                data["career_objective"] = career_obj
+            
+            if not include_skills:
+                data.pop("skills_snapshot", None)
+            
+            if not include_experience:
+                data.pop("experience", None)
+            
+            if not include_education:
+                data.pop("education", None)
+            
+            if not include_certs:
+                data.pop("certifications", None)
+            
+            if not include_refs:
+                data.pop("references", None)
+            
+            if not include_projects:
+                data.pop("project_highlights", None)
+            
+            # Update session state
+            if "resume_json" in raw_data:
+                raw_data["resume_json"] = data
+            else:
+                raw_data = data
+            
+            st.session_state["edited_json"] = json.dumps(raw_data, indent=2, ensure_ascii=False)
+            st.success("✅ Resume sections updated! You can now generate the PDF.")
+            st.rerun()
+    
+    except Exception as e:
+        st.error(f"❌ Error loading resume data: {str(e)}")
+
+st.divider()
+    
+    # ============== COVER LETTER CUSTOMIZATION SECTION ==============
+    
+with st.expander("✉️ Cover Letter Customization", expanded=False):
+    st.header("📝 Customize Cover Letter Sections")
+    st.caption("Edit your cover letter content before generating the PDF")
+    
+    # Load current data
+    try:
+        raw_data = json.loads(st.session_state.get("edited_json", "{}"))
+        if "resume_json" in raw_data:
+            data = raw_data["resume_json"]
+            if isinstance(data, dict) and "resume_json" in data:
+                data = data["resume_json"]
+        else:
+            data = raw_data
+        
+        cover_letter = data.get("cover_letter", {})
+        
+        if not cover_letter:
+            st.info("💡 No cover letter found. Generate one first using the '✍️ AI: Generate Cover Letter' button above.")
+        else:
+            st.success(f"✅ Cover letter loaded for {data.get('name', 'N/A')}")
+            
+            # Section toggles
+            st.subheader("📋 Section Settings")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                include_date = st.checkbox("Include Date", value=True)
+                include_recipient = st.checkbox("Include Recipient Info", value=True)
+            with col2:
+                include_subject = st.checkbox("Include Subject Line", value=True)
+                include_contact = st.checkbox("Include Contact Info", value=True)
+            with col3:
+                include_company_addr = st.checkbox("Include Company Address", value=bool(cover_letter.get("company_address")))
+            
+            st.divider()
+            
+            # Header customization
+            st.subheader("📋 Header Information")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                date_val = st.text_input("Date", value=cover_letter.get("date", "AUTO"), help="Use AUTO for today's date")
+                recipient = st.text_input("Recipient", value=cover_letter.get("recipient", "Hiring Manager"))
+                company = st.text_input("Company", value=cover_letter.get("company", ""))
+            
+            with col2:
+                role_title = st.text_input("Role Title", value=cover_letter.get("role_title", ""))
+                company_address = st.text_area("Company Address", value=cover_letter.get("company_address", ""), height=80)
+            
+            subject = st.text_input("Subject Line", value=cover_letter.get("subject", ""))
+            opening = st.text_input("Opening Greeting", value=cover_letter.get("opening", "Dear Hiring Manager,"))
+            
+            st.divider()
+            
+            # Body paragraphs
+            st.subheader("📝 Letter Body")
+            body_points = cover_letter.get("body_points", [])
+            
+            if not body_points:
+                body_points = ["", "", "", ""]
+            
+            updated_body_points = []
+            
+            for i, paragraph in enumerate(body_points):
+                with st.expander(f"Paragraph {i+1}", expanded=False):
+                    para_text = st.text_area(
+                        f"Content",
+                        value=paragraph,
+                        height=150,
+                        key=f"cl_para_{i}",
+                        help="Write naturally, like you're having a conversation"
+                    )
+                    updated_body_points.append(para_text)
+                    
+                    # Word count for this paragraph
+                    word_count = len(re.findall(r'\b[\w\']+\b', para_text))
+                    st.caption(f"📊 Words: {word_count}")
+            
+            # Add paragraph button
+            if st.button("➕ Add Another Paragraph"):
+                updated_body_points.append("")
+            
+            # Calculate total word count
+            total_words = sum(len(re.findall(r'\b[\w\']+\b', p)) for p in updated_body_points)
+            st.metric("Total Body Word Count", total_words, help="Aim for 500-600 words")
+            
+            if total_words < 450:
+                st.warning("⚠️ Cover letter might be too short. Aim for 500-600 words.")
+            elif total_words > 650:
+                st.warning("⚠️ Cover letter might be too long. Try to keep it under 600 words.")
+            else:
+                st.success("✅ Word count looks good!")
+            
+            st.divider()
+            
+            # Footer customization
+            st.subheader("📋 Signature")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                closing = st.text_input("Closing", value=cover_letter.get("closing", "Best regards,"))
+                signature_name = st.text_input("Signature Name", value=cover_letter.get("signature_name", data.get("name", "")))
+            
+            with col2:
+                phone_number = st.text_input("Phone Number", value=cover_letter.get("phone_number", ""))
+                email = st.text_input("Email", value=cover_letter.get("email", ""))
+            
+            st.divider()
+            
+            # Save changes button
+            if st.button("💾 Save Cover Letter Changes", use_container_width=True, type="primary"):
+                # Update cover letter in data
+                updated_cover_letter = {
+                    "date": date_val if include_date else "",
+                    "recipient": recipient if include_recipient else "",
+                    "company": company,
+                    "role_title": role_title,
+                    "company_address": company_address if include_company_addr else "",
+                    "subject": subject if include_subject else "",
+                    "opening": opening,
+                    "body_points": [p for p in updated_body_points if p.strip()],
+                    "closing": closing,
+                    "signature_name": signature_name if include_contact else "",
+                    "phone_number": phone_number if include_contact else "",
+                    "email": email if include_contact else ""
+                }
+                
+                data["cover_letter"] = updated_cover_letter
+                
+                # Update session state
+                if "resume_json" in raw_data:
+                    raw_data["resume_json"] = data
+                else:
+                    raw_data = data
+                
+                st.session_state["edited_json"] = json.dumps(raw_data, indent=2, ensure_ascii=False)
+                st.success("✅ Cover letter updated! You can now generate the PDF.")
+                st.rerun()
+    
+    except Exception as e:
+        st.error(f"❌ Error loading cover letter: {str(e)}")
+
+st.divider()
+    
     # ============== PDF GENERATION SECTION ==============
     
 with st.expander("🔞 Stuff Generator", expanded=True):
