@@ -8,7 +8,6 @@ from typing import Optional
 
 from openai import OpenAI
 import streamlit as st
-client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", ""))
 
 def _parse_ai_json(text: str) -> dict:
     """Parse AI response with robust JSON extraction."""
@@ -68,16 +67,24 @@ def _parse_ai_json(text: str) -> dict:
             raise ValueError("Parsed AI response is not a JSON object.")
         return data
 
+def get_openai_api_key() -> str:
+    """Load the OpenAI API key from Streamlit secrets or environment."""
+    api_key = None
+    try:
+        api_key = st.secrets.get("OPENAI_API_KEY")
+    except Exception:
+        api_key = None
+    if not api_key:
+        api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set in Streamlit secrets or environment.")
+    return api_key
+
+
 @lru_cache(maxsize=1)
 def get_openai_client() -> OpenAI:
-    """Create an OpenAI client without hard-failing if secrets are missing."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        try:
-            api_key = st.secrets.get("OPENAI_API_KEY")
-        except Exception:
-            api_key = None
-    return OpenAI(api_key=api_key or "")
+    """Create an OpenAI client with a validated API key."""
+    return OpenAI(api_key=get_openai_api_key())
 
 def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
     """Tailor resume to match job description with ATS optimization."""
@@ -226,7 +233,7 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
         raise Exception(f"Cover letter generation failed: {str(e)}")
 
 
-def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "o3-mini") -> dict:
+def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt-4o-mini") -> dict:
     """Analyze resume against job description and provide ATS score."""
     system_prompt = (
         "You are an ATS (Applicant Tracking System) analyzer with deep reasoning capabilities.\n"
@@ -253,6 +260,7 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "o3-
     }, ensure_ascii=False)
 
     try:
+        client = get_openai_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[
