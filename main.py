@@ -8,6 +8,7 @@ from pathlib import Path
 from datetime import datetime
 import time
 import threading
+import os
 
 from pdf_generator import create_resume_pdf, create_cover_letter_pdf
 from utils import safe_filename, open_pdf_in_new_tab
@@ -50,6 +51,45 @@ except ImportError as e:
 except Exception as e:
     GOOGLE_SHEETS_ERROR = str(e)
     print(f"❌ Other error: {e}")
+
+
+def require_login() -> bool:
+    """Require a password before granting access to the app."""
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+
+    app_password = None
+    try:
+        app_password = st.secrets.get("APP_PASSWORD")
+    except Exception:
+        app_password = None
+    if not app_password:
+        app_password = os.getenv("APP_PASSWORD")
+
+    if not app_password:
+        st.error("❌ APP_PASSWORD is not configured. Set it in Streamlit secrets or environment.")
+        st.stop()
+
+    if st.session_state["authenticated"]:
+        with st.sidebar:
+            if st.button("🚪 Log out"):
+                st.session_state["authenticated"] = False
+                st.rerun()
+        return True
+
+    st.title("🔐 Login")
+    with st.form("login_form"):
+        password = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Sign in")
+        if submitted:
+            if password == app_password:
+                st.session_state["authenticated"] = True
+                st.success("✅ Logged in successfully.")
+                st.rerun()
+            else:
+                st.error("❌ Incorrect password.")
+
+    return False
 
 
 def render_job_tracker():
@@ -362,7 +402,10 @@ def render_job_tracker():
 def main():
     """Main Streamlit application with AI features"""
     st.set_page_config(page_title="AI Resume Generator", page_icon="📄", layout="wide")
-    
+
+    if not require_login():
+        return
+
     st.title("🤖 AI-Powered Resume Generator")
     
     # Load JSON data first
