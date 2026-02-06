@@ -579,7 +579,16 @@ def main():
                 else:
                     with st.spinner("✍️ Generating cover letter..."):
                         try:
-                            data = json.loads(st.session_state["edited_json"])
+                            raw_data = json.loads(st.session_state["edited_json"])
+
+                            # Handle nested structure consistently
+                            if "resume_json" in raw_data:
+                                data = raw_data["resume_json"]
+                                if isinstance(data, dict) and "resume_json" in data:
+                                    data = data["resume_json"]
+                            else:
+                                data = raw_data
+
                             cl = call_ai_generate_cover_letter(data, st.session_state["job_desc"])
                             
                             # Fallbacks
@@ -593,7 +602,13 @@ def main():
                                 cl["signature_name"] = data.get("name", "")
                             
                             data["cover_letter"] = cl
-                            st.session_state["edited_json"] = json.dumps(data, indent=2, ensure_ascii=False)
+
+                            if "resume_json" in raw_data:
+                                raw_data["resume_json"] = data
+                            else:
+                                raw_data = data
+
+                            st.session_state["edited_json"] = json.dumps(raw_data, indent=2, ensure_ascii=False)
                             JSON_PATH.write_text(st.session_state["edited_json"], encoding="utf-8")
                             
                             st.success("✅ Cover letter generated! Check JSON editor.")

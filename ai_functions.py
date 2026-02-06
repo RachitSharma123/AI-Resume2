@@ -138,11 +138,11 @@ def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: s
 
 
 def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
-    """Generate cover letter JSON from resume and job description."""
+    """Generate a cover_letter object from resume and job description."""
     system_prompt = (
         "You are a professional career coach helping someone write an authentic, human cover letter.\n\n"
-        "CRITICAL: You must return the FULL resume JSON with a 'cover_letter' section added to it.\n"
-        "Do NOT return just the cover_letter object alone - return the complete resume_json with cover_letter inside.\n\n"
+        "CRITICAL: Return ONLY a JSON object for the `cover_letter` section.\n"
+        "Do NOT return full resume JSON. Do NOT wrap in `resume_json`.\n\n"
         "Cover letter requirements:\n"
         "- Write like a real person having a professional conversation\n"
         "- Be warm, genuine, and conversational - imagine writing to someone you respect\n"
@@ -167,38 +167,28 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
         "✅ GOOD: 'I've spent the past two years learning how Python and SQL can solve real business problems, not just create reports'\n\n"
         "Structure to return:\n"
         "{\n"
-        "  \"name\": \"[from resume]\",\n"
-        "  \"contact\": \"[from resume]\",\n"
-        "  \"career_objective\": \"[from resume]\",\n"
-        "  \"skills_snapshot\": [...from resume...],\n"
-        "  \"experience\": [...from resume...],\n"
-        "  \"education\": [...from resume...],\n"
-        "  \"certifications\": [...from resume...],\n"
-        "  \"references\": [...from resume...],\n"
-        "  \"cover_letter\": {\n"
-        "    \"date\": \"AUTO\",\n"
-        "    \"recipient\": \"Hiring Manager\",\n"
-        "    \"company\": \"[extract from JD or leave blank]\",\n"
-        "    \"role_title\": \"[extract from JD]\",\n"
-        "    \"company_address\": \"\",\n"
-        "    \"subject\": \"Re: Application for [Role Title]\",\n"
-        "    \"opening\": \"Dear Hiring Manager,\",\n"
-        "    \"body_points\": [\n"
-        "      \"Opening paragraph: 100-130 words\",\n"
-        "      \"Experience paragraph: 100-130 words\",\n"
-        "      \"Achievement paragraph: 100-130 words\",\n"
-        "      \"Company fit paragraph: 100-130 words\",\n"
-        "      \"Closing paragraph: 80-100 words\"\n"
-        "    ],\n"
-        "    \"closing\": \"Best regards,\",\n"
-        "    \"signature_name\": \"[from resume name]\",\n"
-        "    \"phone_number\": \"[from resume contact]\",\n"
-        "    \"email\": \"[from resume contact]\"\n"
-        "  }\n"
+        "  \"date\": \"AUTO\",\n"
+        "  \"recipient\": \"Hiring Manager\",\n"
+        "  \"company\": \"[extract from JD or leave blank]\",\n"
+        "  \"role_title\": \"[extract from JD]\",\n"
+        "  \"company_address\": \"\",\n"
+        "  \"subject\": \"Re: Application for [Role Title]\",\n"
+        "  \"opening\": \"Dear Hiring Manager,\",\n"
+        "  \"body_points\": [\n"
+        "    \"Opening paragraph: 100-130 words\",\n"
+        "    \"Experience paragraph: 100-130 words\",\n"
+        "    \"Achievement paragraph: 100-130 words\",\n"
+        "    \"Company fit paragraph: 100-130 words\",\n"
+        "    \"Closing paragraph: 80-100 words\"\n"
+        "  ],\n"
+        "  \"closing\": \"Best regards,\",\n"
+        "  \"signature_name\": \"[from resume name]\",\n"
+        "  \"phone_number\": \"[from resume contact]\",\n"
+        "  \"email\": \"[from resume contact]\"\n"
         "}\n\n"
         "IMPORTANT: Each paragraph in body_points should read naturally, like sentences in an email.\n"
         "Aim for 500-600 total words in the body_points combined.\n"
-        "Return ONLY the complete JSON. NO markdown, NO explanations, NO extra text.\n"
+        "Return ONLY the cover_letter JSON object. NO markdown, NO explanations, NO extra text.\n"
     )
 
     user_prompt = json.dumps({
@@ -214,21 +204,26 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.8  # Higher temp for more natural, less robotic writing
+            temperature=0.8
         )
-        
+
         text = resp.choices[0].message.content.strip()
         result = _parse_ai_json(text)
-        
-        # Validate that cover_letter exists in the result
-        if "cover_letter" not in result:
-            # If AI only returned cover_letter object, wrap it properly
-            if "date" in result or "recipient" in result:
-                # This is just a cover_letter object, need to merge with resume
-                resume_json["cover_letter"] = result
-                return resume_json
-        
-        return result
+
+        # Normalize possible response shapes into a plain cover_letter object.
+        if isinstance(result.get("cover_letter"), dict):
+            return result["cover_letter"]
+
+        if isinstance(result.get("resume_json"), dict):
+            nested = result["resume_json"].get("cover_letter")
+            if isinstance(nested, dict):
+                return nested
+
+        cover_letter_keys = {"date", "recipient", "company", "role_title", "subject", "opening", "body_points", "closing"}
+        if cover_letter_keys.intersection(result.keys()):
+            return result
+
+        raise ValueError("AI response did not contain a valid cover_letter object")
     except Exception as e:
         raise Exception(f"Cover letter generation failed: {str(e)}")
 
