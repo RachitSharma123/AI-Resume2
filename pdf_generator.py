@@ -310,6 +310,11 @@ def create_cover_letter_pdf(json_path="resume_data.json",
 
     cl = data.get("cover_letter", {})
 
+    # Backward compatibility: recover from malformed shape where cover_letter
+    # accidentally contains a full resume object with nested cover_letter.
+    if isinstance(cl, dict) and isinstance(cl.get("cover_letter"), dict):
+        cl = cl.get("cover_letter", {})
+
     c = canvas.Canvas(output_path, pagesize=A4)
     draw_page_border(c, PAGE_W, PAGE_H)
 
