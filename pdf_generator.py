@@ -251,6 +251,29 @@ def create_resume_pdf(json_path="resume_data.json",
 
         y = draw_divider(c, left, left + content_w, y)
 
+    # Additional Information
+    additional_info = data.get("additional_information") or {}
+    if isinstance(additional_info, dict) and additional_info:
+        y = new_page_if_needed(y)
+        c.setFont(font_bold, font_section_title)
+        c.drawString(left, y, "ADDITIONAL INFORMATION")
+        y -= (14 * font_scale + MIN_LINE_GAP)
+
+        c.setFont(font_regular, font_certification)
+        for key, value in additional_info.items():
+            label = str(key).replace("_", " ").title()
+            line = f"{label}: {value}"
+            info_lines = wrap_lines(line, content_w - 10, font=font_regular, size=font_certification)
+            for i, iline in enumerate(info_lines):
+                if i == 0:
+                    c.drawString(left, y, "•")
+                    c.drawString(left + 10, y, iline)
+                else:
+                    c.drawString(left + 10, y, iline)
+                y -= spacing_cert_line
+
+        y = draw_divider(c, left, left + content_w, y)
+
     # References
     refs = data.get("references") or []
     if refs:
@@ -309,6 +332,28 @@ def create_cover_letter_pdf(json_path="resume_data.json",
         data = raw_data
 
     cl = data.get("cover_letter", {})
+
+    # Backward compatibility: recover malformed nested cover_letter shapes.
+    for _ in range(4):
+        if isinstance(cl, dict) and isinstance(cl.get("cover_letter"), dict):
+            cl = cl.get("cover_letter", {})
+        else:
+            break
+
+    if not isinstance(cl, dict):
+        cl = {}
+
+    body_points = cl.get("body_points", [])
+    if isinstance(body_points, str):
+        body_points = [body_points]
+    if not isinstance(body_points, list):
+        body_points = []
+    cl["body_points"] = [str(p).strip() for p in body_points if str(p).strip()]
+
+    if not cl["body_points"]:
+        fallback = str(data.get("career_objective", "")).strip()
+        if fallback:
+            cl["body_points"] = [fallback]
 
     c = canvas.Canvas(output_path, pagesize=A4)
     draw_page_border(c, PAGE_W, PAGE_H)
