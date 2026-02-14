@@ -590,6 +590,20 @@ def main():
                                 data = raw_data
 
                             cl = call_ai_generate_cover_letter(data, st.session_state["job_desc"])
+
+                            # Defensive normalization for malformed/nested responses.
+                            if isinstance(cl, dict) and isinstance(cl.get("cover_letter"), dict):
+                                cl = cl["cover_letter"]
+
+                            body_points = cl.get("body_points", []) if isinstance(cl, dict) else []
+                            if isinstance(body_points, str):
+                                body_points = [body_points]
+                            if not isinstance(body_points, list):
+                                body_points = []
+                            cl["body_points"] = [str(p).strip() for p in body_points if str(p).strip()]
+
+                            if not cl["body_points"]:
+                                raise ValueError("Generated cover letter is empty. Please regenerate with a clearer job description.")
                             
                             # Fallbacks
                             if not cl.get("phone_number"):
