@@ -4,20 +4,20 @@ import json
 import os
 import re
 from functools import lru_cache
-from typing import Optional
 
 from openai import OpenAI
 import streamlit as st
 
+
 def _parse_ai_json(text: str) -> dict:
     """Parse AI response with robust JSON extraction."""
     cleaned = text.strip()
-    
+
     # Remove markdown code blocks
     cleaned = re.sub(r'^```json\s*', '', cleaned, flags=re.MULTILINE)
     cleaned = re.sub(r'^```\s*', '', cleaned, flags=re.MULTILINE)
     cleaned = re.sub(r'\s*```$', '', cleaned, flags=re.MULTILINE)
-    
+
     # Try to find the JSON object with balanced braces
     # This is more robust for large JSON responses
     try:
@@ -25,11 +25,11 @@ def _parse_ai_json(text: str) -> dict:
         start_idx = cleaned.find('{')
         if start_idx == -1:
             raise ValueError("No JSON object found in response")
-        
+
         # Count braces to find matching closing brace
         brace_count = 0
         end_idx = -1
-        
+
         for i in range(start_idx, len(cleaned)):
             if cleaned[i] == '{':
                 brace_count += 1
@@ -38,12 +38,12 @@ def _parse_ai_json(text: str) -> dict:
                 if brace_count == 0:
                     end_idx = i + 1
                     break
-        
+
         if end_idx == -1:
             raise ValueError("Unbalanced JSON braces")
-        
+
         json_str = cleaned[start_idx:end_idx]
-        
+
     except Exception:
         # Fallback to regex method
         m = re.search(r'\{.*\}', cleaned, flags=re.DOTALL)
@@ -51,13 +51,13 @@ def _parse_ai_json(text: str) -> dict:
             json_str = m.group(0)
         else:
             raise ValueError("Could not extract JSON from response")
-    
+
     # Clean up smart quotes
     json_str = json_str.replace(""", "\"").replace(""", "\"").replace("'", "'")
-    
+
     try:
         return json.loads(json_str)
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         # Try Python literal_eval as fallback
         pythonish = re.sub(r"\btrue\b", "True", json_str, flags=re.IGNORECASE)
         pythonish = re.sub(r"\bfalse\b", "False", pythonish, flags=re.IGNORECASE)
@@ -67,29 +67,117 @@ def _parse_ai_json(text: str) -> dict:
             raise ValueError("Parsed AI response is not a JSON object.")
         return data
 
-def get_openai_api_key() -> str:
-    """Load the OpenAI API key from Streamlit secrets or environment."""
-    api_key = None
-    try:
-        api_key = st.secrets.get("OPENAI_API_KEY")
-    except Exception:
-        api_key = None
+
+def _get_secret_or_env(*keys: str) -> str | None:
+    for key in keys:
+        value = None
+        try:
+            value = st.secrets.get(key)
+        except Exception:
+            value = None
+        if not value:
+            value = os.getenv(key)
+        if value:
+            return value
+    return None
+
+
+def _normalize_provider(provider: str | None) -> str:
+    p = (provider or "openai").strip().lower()
+    aliases = {
+        "xai": "grok",
+        "moonshot": "kimi",
+    }
+    return aliases.get(p, p)
+
+
+def _resolve_provider_config() -> dict:
+    provider = _normalize_provider(_get_secret_or_env("AI_PROVIDER") or "openai")
+
+    provider_defaults = {
+        "openai": {
+            "base_url": "https://api.openai.com/v1",
+            "key_names": ["OPENAI_API_KEY", "AI_API_KEY"],
+            "default_model": "gpt-4o-mini",
+        },
+        "openrouter": {
+            "base_url": "https://openrouter.ai/api/v1",
+            "key_names": ["OPENROUTER_API_KEY", "AI_API_KEY"],
+            "default_model": "openai/gpt-4o-mini",
+        },
+        "grok": {
+            "base_url": "https://api.x.ai/v1",
+            "key_names": ["GROK_API_KEY", "XAI_API_KEY", "AI_API_KEY"],
+            "default_model": "grok-2-latest",
+        },
+        "kimi": {
+            "base_url": "https://api.moonshot.ai/v1",
+            "key_names": ["KIMI_API_KEY", "MOONSHOT_API_KEY", "AI_API_KEY"],
+            "default_model": "moonshot-v1-8k",
+        },
+        "zai": {
+            "base_url": "https://api.z.ai/api/paas/v4",
+            "key_names": ["ZAI_API_KEY", "AI_API_KEY"],
+            "default_model": "glm-4-plus",
+        },
+        "blackbox": {
+            "base_url": "https://api.blackbox.ai/v1",
+            "key_names": ["BLACKBOX_API_KEY", "AI_API_KEY"],
+            "default_model": "blackboxai/openai/gpt-4o-mini",
+        },
+    }
+
+    defaults = provider_defaults.get(provider, {
+        "base_url": _get_secret_or_env("AI_BASE_URL") or "https://api.openai.com/v1",
+        "key_names": ["AI_API_KEY"],
+        "default_model": "gpt-4o-mini",
+    })
+
+    api_key = _get_secret_or_env(*defaults["key_names"])
     if not api_key:
-        api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not set in Streamlit secrets or environment.")
-    return api_key
+        raise ValueError(
+            f"No API key configured for provider '{provider}'. "
+            f"Set one of: {', '.join(defaults['key_names'])}."
+        )
+
+    base_url = _get_secret_or_env("AI_BASE_URL") or defaults["base_url"]
+    default_model = _get_secret_or_env("AI_MODEL") or defaults["default_model"]
+
+    return {
+        "provider": provider,
+        "api_key": api_key,
+        "base_url": base_url,
+        "default_model": default_model,
+    }
 
 
 @lru_cache(maxsize=1)
-def get_openai_client() -> OpenAI:
-    """Create an OpenAI client with a validated API key."""
-    return OpenAI(api_key=get_openai_api_key())
+def get_ai_client() -> OpenAI:
+    cfg = _resolve_provider_config()
+    return OpenAI(api_key=cfg["api_key"], base_url=cfg["base_url"])
+
+
+def _chat_completion(system_prompt: str, user_prompt: str, model: str | None = None, temperature: float = 0.7) -> str:
+    cfg = _resolve_provider_config()
+    chosen_model = model or cfg["default_model"]
+    client = get_ai_client()
+
+    resp = client.chat.completions.create(
+        model=chosen_model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=temperature,
+    )
+
+    return (resp.choices[0].message.content or "").strip()
+
 
 def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
     """Tailor resume to match job description with ATS optimization."""
     system_prompt = (
-          "You are an elite ATS-optimization and hiring strategist.\n"
+        "You are an elite ATS-optimization and hiring strategist.\n"
         "Your ONLY goal is to modify my resume JSON so that it maximizes shortlisting and interview chances for the given Job Description.\n\n"
         "STRICT RULES (DO NOT BREAK):\n"
         "1. My NAME must NEVER change.\n"
@@ -115,23 +203,16 @@ def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: s
         "- NO explanations, NO markdown code blocks, NO text before or after JSON\n"
     )
 
-    user_prompt = json.dumps({
-        "resume_json": base_resume_json,
-        "job_description": job_description
-    }, ensure_ascii=False)
+    user_prompt = json.dumps(
+        {
+            "resume_json": base_resume_json,
+            "job_description": job_description,
+        },
+        ensure_ascii=False,
+    )
 
     try:
-        client = get_openai_client()
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.7
-        )
-        
-        text = resp.choices[0].message.content.strip()
+        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.7)
         return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"AI Tailor failed: {str(e)}")
@@ -191,23 +272,16 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
         "Return ONLY the cover_letter JSON object. NO markdown, NO explanations, NO extra text.\n"
     )
 
-    user_prompt = json.dumps({
-        "resume_json": resume_json,
-        "job_description": job_description
-    }, ensure_ascii=False)
+    user_prompt = json.dumps(
+        {
+            "resume_json": resume_json,
+            "job_description": job_description,
+        },
+        ensure_ascii=False,
+    )
 
     try:
-        client = get_openai_client()
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.8
-        )
-
-        text = resp.choices[0].message.content.strip()
+        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.8)
         result = _parse_ai_json(text)
 
         # Normalize possible response shapes into a plain cover_letter object.
@@ -219,7 +293,16 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
             if isinstance(nested, dict):
                 return nested
 
-        cover_letter_keys = {"date", "recipient", "company", "role_title", "subject", "opening", "body_points", "closing"}
+        cover_letter_keys = {
+            "date",
+            "recipient",
+            "company",
+            "role_title",
+            "subject",
+            "opening",
+            "body_points",
+            "closing",
+        }
         if cover_letter_keys.intersection(result.keys()):
             return result
 
@@ -249,38 +332,36 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt
         "Return ONLY the JSON object, no markdown, no explanations, no code blocks, no extra text."
     )
 
-    user_prompt = json.dumps({
-        "resume_json": resume_json,
-        "job_description": job_description
-    }, ensure_ascii=False)
+    user_prompt = json.dumps(
+        {
+            "resume_json": resume_json,
+            "job_description": job_description,
+        },
+        ensure_ascii=False,
+    )
 
     try:
-        client = get_openai_client()
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.3
-        )
-        
-        text = resp.choices[0].message.content.strip()
+        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.3)
         result = _parse_ai_json(text)
-        
+
         # Validate structure
-        required_keys = ["ats_score", "keyword_match", "experience_match", "skills_match", 
-                        "strengths", "weaknesses", "missing_keywords", "suggestions"]
+        required_keys = [
+            "ats_score",
+            "keyword_match",
+            "experience_match",
+            "skills_match",
+            "strengths",
+            "weaknesses",
+            "missing_keywords",
+            "suggestions",
+        ]
         for key in required_keys:
             if key not in result:
                 result[key] = 0 if "score" in key or "match" in key else []
-        
+
         return result
-        
-    except json.JSONDecodeError as e:
-        print(f"JSON Parse Error: {e}")
-        print(f"Response text: {text}")
-        # Return default structure on error
+
+    except json.JSONDecodeError:
         return {
             "ats_score": 0,
             "keyword_match": 0,
@@ -289,7 +370,7 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt
             "strengths": ["Unable to analyze - JSON parse error"],
             "weaknesses": ["Please try again"],
             "missing_keywords": [],
-            "suggestions": ["Retry the analysis"]
+            "suggestions": ["Retry the analysis"],
         }
     except Exception as e:
         raise Exception(f"ATS analysis failed: {str(e)}")
@@ -309,33 +390,26 @@ def call_ai_improve_bullets(experience_bullets: list, job_description: str, mode
         "Keep each bullet concise (1-2 lines). No markdown, no explanations, no extra text."
     )
 
-    user_prompt = json.dumps({
-        "bullets": experience_bullets,
-        "job_description": job_description
-    }, ensure_ascii=False)
+    user_prompt = json.dumps(
+        {
+            "bullets": experience_bullets,
+            "job_description": job_description,
+        },
+        ensure_ascii=False,
+    )
 
     try:
-        client = get_openai_client()
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.7
-        )
-        
-        text = resp.choices[0].message.content.strip()
-        
+        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.7)
+
         # Remove markdown
         text = re.sub(r'^```json\s*', '', text)
         text = re.sub(r'\s*```$', '', text)
-        
+
         # Extract array
         m = re.search(r'\[.*\]', text, flags=re.DOTALL)
         if m:
             text = m.group(0)
-        
+
         return json.loads(text)
     except Exception as e:
         raise Exception(f"Bullet improvement failed: {str(e)}")
@@ -359,17 +433,7 @@ def call_ai_extract_keywords(job_description: str, model: str = "gpt-4o-mini") -
     )
 
     try:
-        client = get_openai_client()
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": job_description}
-            ],
-            temperature=0.3
-        )
-        
-        text = resp.choices[0].message.content
+        text = _chat_completion(system_prompt, job_description, model=model, temperature=0.3)
         return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"Keyword extraction failed: {str(e)}")
@@ -391,17 +455,7 @@ def call_ai_rewrite_objective(current_objective: str, job_description: str, mode
     user_prompt = f"Current objective: {current_objective}\n\nJob description: {job_description}"
 
     try:
-        client = get_openai_client()
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.7
-        )
-        
-        return resp.choices[0].message.content.strip()
+        return _chat_completion(system_prompt, user_prompt, model=model, temperature=0.7)
     except Exception as e:
         raise Exception(f"Objective rewrite failed: {str(e)}")
 
@@ -426,23 +480,18 @@ def call_ai_compress_resume(resume_json: dict, model: str = "gpt-4o-mini") -> di
     user_prompt = json.dumps({"resume_json": resume_json}, ensure_ascii=False)
 
     try:
-        client = get_openai_client()
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.5
-        )
-        
-        text = resp.choices[0].message.content
+        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.5)
         return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"Resume compression failed: {str(e)}")
 
 
-def call_ai_improve_from_ats(resume_json: dict, ats_results: dict, job_description: str, model: str = "gpt-4o-mini") -> dict:
+def call_ai_improve_from_ats(
+    resume_json: dict,
+    ats_results: dict,
+    job_description: str,
+    model: str = "gpt-4o-mini",
+) -> dict:
     """Improve resume based on ATS analysis results."""
     system_prompt = (
         "You are a resume optimization expert. Based on the ATS analysis, improve the resume.\n\n"
@@ -460,24 +509,17 @@ def call_ai_improve_from_ats(resume_json: dict, ats_results: dict, job_descripti
         "Return ONLY the improved resume JSON (no markdown, no explanations, no extra text)."
     )
 
-    user_prompt = json.dumps({
-        "resume_json": resume_json,
-        "ats_analysis": ats_results,
-        "job_description": job_description
-    }, ensure_ascii=False)
+    user_prompt = json.dumps(
+        {
+            "resume_json": resume_json,
+            "ats_analysis": ats_results,
+            "job_description": job_description,
+        },
+        ensure_ascii=False,
+    )
 
     try:
-        client = get_openai_client()
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.6
-        )
-        
-        text = resp.choices[0].message.content
+        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.6)
         return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"ATS-based improvement failed: {str(e)}")
