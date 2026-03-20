@@ -20,7 +20,9 @@ from ai_functions import (
     call_ai_extract_keywords,
     call_ai_rewrite_objective,
     call_ai_compress_resume,
-    call_ai_improve_from_ats
+    call_ai_improve_from_ats,
+    get_provider_choices,
+    list_models,
 )
 
 JSON_PATH = Path("resume_data.json")
@@ -90,6 +92,159 @@ def require_login() -> bool:
                 st.error("❌ Incorrect password.")
 
     return False
+
+
+def _init_ai_runtime_state() -> None:
+    """Initialize session state used for runtime AI provider configuration."""
+    if "ai_runtime_config" not in st.session_state:
+        st.session_state["ai_runtime_config"] = {
+            "provider": "openai",
+            "api_key": "",
+            "base_url": "",
+            "model": "",
+        }
+    if "ai_models_cache" not in st.session_state:
+        st.session_state["ai_models_cache"] = []
+    if "ai_models_error" not in st.session_state:
+        st.session_state["ai_models_error"] = ""
+
+
+def render_ai_provider_settings() -> None:
+    """Render runtime AI provider settings in a visible glass-style panel."""
+    _init_ai_runtime_state()
+    provider_choices = get_provider_choices()
+    runtime_cfg = st.session_state["ai_runtime_config"]
+
+    selected_provider = runtime_cfg.get("provider", "openai")
+    if selected_provider not in provider_choices:
+        selected_provider = "custom"
+
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stPopover"] button[kind="secondary"] {
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            box-shadow: 0 12px 30px rgba(31, 38, 135, 0.18);
+        }
+        div[data-testid="stPopoverContent"] {
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: linear-gradient(135deg, rgba(255,255,255,0.20), rgba(255,255,255,0.06));
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+        .glass-card {
+            border-radius: 20px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid rgba(255,255,255,0.16);
+            background: linear-gradient(135deg, rgba(255,255,255,0.20), rgba(255,255,255,0.05));
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.container():
+        st.markdown(
+            """
+            <div class="glass-card">
+                <strong>🫧 AI Provider Settings</strong><br/>
+                Switch providers at runtime, paste an API key securely, optionally override the base URL, and fetch available models without editing env files.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        provider_keys = list(provider_choices.keys())
+        selected_provider = st.selectbox(
+            "Provider",
+            provider_keys,
+            index=provider_keys.index(selected_provider),
+            format_func=lambda key: provider_choices.get(key, key.title()),
+        )
+
+        api_key = st.text_input(
+            "API Key",
+            value=runtime_cfg.get("api_key", ""),
+            type="password",
+            placeholder="Enter provider API key",
+        )
+        base_url = st.text_input(
+            "Base URL Override",
+            value=runtime_cfg.get("base_url", ""),
+            placeholder="Leave blank to use provider default",
+        )
+        model_override = st.text_input(
+            "Model Override",
+            value=runtime_cfg.get("model", ""),
+            placeholder="Leave blank to use env/default model",
+        )
+
+        st.session_state["ai_runtime_config"] = {
+            "provider": selected_provider,
+            "api_key": api_key,
+            "base_url": base_url,
+            "model": model_override,
+        }
+
+        action_col1, action_col2 = st.columns(2)
+        with action_col1:
+            if st.button("Fetch Models", use_container_width=True):
+                try:
+                    models = list_models(
+                        provider=selected_provider,
+                        api_key=api_key or None,
+                        base_url=base_url or None,
+                    )
+                    st.session_state["ai_models_cache"] = models
+                    st.session_state["ai_models_error"] = ""
+                    if not model_override and models:
+                        st.session_state["ai_runtime_config"]["model"] = models[0]
+                    st.success(f"Fetched {len(models)} model(s).")
+                except Exception as e:
+                    st.session_state["ai_models_cache"] = []
+                    st.session_state["ai_models_error"] = str(e)
+                    st.error(f"Unable to fetch models: {e}")
+
+        with action_col2:
+            if st.button("Clear Runtime Settings", use_container_width=True):
+                st.session_state["ai_runtime_config"] = {
+                    "provider": "openai",
+                    "api_key": "",
+                    "base_url": "",
+                    "model": "",
+                }
+                st.session_state["ai_models_cache"] = []
+                st.session_state["ai_models_error"] = ""
+                st.success("Runtime AI settings cleared. Env/secrets will be used.")
+
+        models = st.session_state.get("ai_models_cache", [])
+        if models:
+            current_model = st.session_state["ai_runtime_config"].get("model") or models[0]
+            if current_model not in models:
+                models = [current_model, *models]
+            chosen_model = st.selectbox(
+                "Available Models",
+                models,
+                index=models.index(current_model),
+                help="Use Fetch Models to refresh this list from the selected provider.",
+            )
+            st.session_state["ai_runtime_config"]["model"] = chosen_model
+            st.caption(f"Selected model: `{chosen_model}`")
+        elif st.session_state.get("ai_models_error"):
+            st.caption("Tip: check the provider, base URL, and API key, then try Fetch Models again.")
+
+        active_model = st.session_state["ai_runtime_config"].get("model") or "env/default"
+        summary_col1, summary_col2 = st.columns(2)
+        with summary_col1:
+            st.info(f"Active provider: {provider_choices.get(selected_provider, selected_provider)}")
+        with summary_col2:
+            st.info(f"Active model: {active_model}")
 
 
 def render_job_tracker():
@@ -407,6 +562,7 @@ def main():
         return
 
     st.title("🤖 AI-Powered Resume Generator")
+    render_ai_provider_settings()
     
     # Load JSON data first
     if not JSON_PATH.exists():
@@ -548,6 +704,7 @@ def main():
     # ============== AI FEATURES SECTION ==============
     with st.expander("🤖 AI Features", expanded=True):
         st.subheader("AI Tools")
+        st.caption("Provider settings are shown above so they are always visible on load.")
         
         # Row 1: Main AI Actions
         ai_col1, ai_col2, ai_col3 = st.columns(3)
