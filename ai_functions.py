@@ -3,10 +3,56 @@ import ast
 import json
 import os
 import re
-from functools import lru_cache
 
 from openai import OpenAI
+import requests
 import streamlit as st
+
+
+PROVIDER_DEFAULTS = {
+    "openai": {
+        "label": "OpenAI",
+        "base_url": "https://api.openai.com/v1",
+        "key_names": ["OPENAI_API_KEY", "AI_API_KEY"],
+        "default_model": "gpt-4o-mini",
+    },
+    "openrouter": {
+        "label": "OpenRouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "key_names": ["OPENROUTER_API_KEY", "AI_API_KEY"],
+        "default_model": "openai/gpt-4o-mini",
+    },
+    "grok": {
+        "label": "Grok / xAI",
+        "base_url": "https://api.x.ai/v1",
+        "key_names": ["GROK_API_KEY", "XAI_API_KEY", "AI_API_KEY"],
+        "default_model": "grok-2-latest",
+    },
+    "kimi": {
+        "label": "Kimi / Moonshot",
+        "base_url": "https://api.moonshot.ai/v1",
+        "key_names": ["KIMI_API_KEY", "MOONSHOT_API_KEY", "AI_API_KEY"],
+        "default_model": "moonshot-v1-8k",
+    },
+    "zai": {
+        "label": "ZAI",
+        "base_url": "https://api.z.ai/api/paas/v4",
+        "key_names": ["ZAI_API_KEY", "AI_API_KEY"],
+        "default_model": "glm-4-plus",
+    },
+    "blackbox": {
+        "label": "Blackbox",
+        "base_url": "https://api.blackbox.ai/v1",
+        "key_names": ["BLACKBOX_API_KEY", "AI_API_KEY"],
+        "default_model": "blackboxai/openai/gpt-4o-mini",
+    },
+    "custom": {
+        "label": "Custom OpenAI-Compatible",
+        "base_url": "https://api.openai.com/v1",
+        "key_names": ["AI_API_KEY"],
+        "default_model": "gpt-4o-mini",
+    },
+}
 
 
 def _parse_ai_json(text: str) -> dict:
@@ -91,69 +137,64 @@ def _normalize_provider(provider: str | None) -> str:
     return aliases.get(p, p)
 
 
-def _resolve_provider_config() -> dict:
-    provider = _normalize_provider(_get_secret_or_env("AI_PROVIDER") or "openai")
+def get_provider_choices() -> dict[str, str]:
+    return {provider: config["label"] for provider, config in PROVIDER_DEFAULTS.items()}
 
-    provider_defaults = {
-        "openai": {
-            "base_url": "https://api.openai.com/v1",
-            "key_names": ["OPENAI_API_KEY", "AI_API_KEY"],
-            "default_model": "gpt-4o-mini",
-        },
-        "openrouter": {
-            "base_url": "https://openrouter.ai/api/v1",
-            "key_names": ["OPENROUTER_API_KEY", "AI_API_KEY"],
-            "default_model": "openai/gpt-4o-mini",
-        },
-        "grok": {
-            "base_url": "https://api.x.ai/v1",
-            "key_names": ["GROK_API_KEY", "XAI_API_KEY", "AI_API_KEY"],
-            "default_model": "grok-2-latest",
-        },
-        "kimi": {
-            "base_url": "https://api.moonshot.ai/v1",
-            "key_names": ["KIMI_API_KEY", "MOONSHOT_API_KEY", "AI_API_KEY"],
-            "default_model": "moonshot-v1-8k",
-        },
-        "zai": {
-            "base_url": "https://api.z.ai/api/paas/v4",
-            "key_names": ["ZAI_API_KEY", "AI_API_KEY"],
-            "default_model": "glm-4-plus",
-        },
-        "blackbox": {
-            "base_url": "https://api.blackbox.ai/v1",
-            "key_names": ["BLACKBOX_API_KEY", "AI_API_KEY"],
-            "default_model": "blackboxai/openai/gpt-4o-mini",
-        },
-    }
 
-    defaults = provider_defaults.get(provider, {
+def _get_runtime_provider_config() -> dict:
+    try:
+        runtime_cfg = st.session_state.get("ai_runtime_config", {})
+    except Exception:
+        runtime_cfg = {}
+    return runtime_cfg if isinstance(runtime_cfg, dict) else {}
+
+
+def _resolve_provider_config(runtime_overrides: dict | None = None) -> dict:
+    runtime_cfg = _get_runtime_provider_config()
+    if runtime_overrides:
+        runtime_cfg = {**runtime_cfg, **runtime_overrides}
+
+    provider = _normalize_provider(
+        runtime_cfg.get("provider") or _get_secret_or_env("AI_PROVIDER") or "openai"
+    )
+
+    defaults = PROVIDER_DEFAULTS.get(provider, {
+        "label": "Custom OpenAI-Compatible",
         "base_url": _get_secret_or_env("AI_BASE_URL") or "https://api.openai.com/v1",
         "key_names": ["AI_API_KEY"],
         "default_model": "gpt-4o-mini",
     })
 
-    api_key = _get_secret_or_env(*defaults["key_names"])
+    api_key = (runtime_cfg.get("api_key") or "").strip() or _get_secret_or_env(*defaults["key_names"])
     if not api_key:
         raise ValueError(
             f"No API key configured for provider '{provider}'. "
-            f"Set one of: {', '.join(defaults['key_names'])}."
+            f"Set one of: {', '.join(defaults['key_names'])} or enter it in AI Provider Settings."
         )
 
-    base_url = _get_secret_or_env("AI_BASE_URL") or defaults["base_url"]
-    default_model = _get_secret_or_env("AI_MODEL") or defaults["default_model"]
+    base_url = (
+        (runtime_cfg.get("base_url") or "").strip()
+        or _get_secret_or_env("AI_BASE_URL")
+        or defaults["base_url"]
+    )
+    default_model = (
+        (runtime_cfg.get("model") or "").strip()
+        or _get_secret_or_env("AI_MODEL")
+        or defaults["default_model"]
+    )
 
     return {
         "provider": provider,
+        "label": defaults.get("label", provider.title()),
         "api_key": api_key,
-        "base_url": base_url,
+        "base_url": base_url.rstrip("/"),
         "default_model": default_model,
+        "key_names": defaults["key_names"],
     }
 
 
-@lru_cache(maxsize=1)
-def get_ai_client() -> OpenAI:
-    cfg = _resolve_provider_config()
+def get_ai_client(runtime_overrides: dict | None = None) -> OpenAI:
+    cfg = _resolve_provider_config(runtime_overrides)
     return OpenAI(api_key=cfg["api_key"], base_url=cfg["base_url"])
 
 
@@ -174,7 +215,47 @@ def _chat_completion(system_prompt: str, user_prompt: str, model: str | None = N
     return (resp.choices[0].message.content or "").strip()
 
 
-def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
+def list_models(
+    provider: str | None = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
+) -> list[str]:
+    """Fetch available model IDs from an OpenAI-compatible provider."""
+    overrides = {
+        "provider": provider,
+        "api_key": api_key,
+        "base_url": base_url,
+    }
+    overrides = {key: value for key, value in overrides.items() if value}
+    cfg = _resolve_provider_config(overrides)
+
+    try:
+        client = get_ai_client(overrides)
+        response = client.models.list()
+        models = [
+            getattr(item, "id", None)
+            for item in getattr(response, "data", [])
+            if getattr(item, "id", None)
+        ]
+    except Exception:
+        url = f"{cfg['base_url']}/models"
+        headers = {"Authorization": f"Bearer {cfg['api_key']}"}
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        payload = response.json()
+        data = payload.get("data", payload if isinstance(payload, list) else [])
+        models = []
+        for item in data:
+            if isinstance(item, dict) and item.get("id"):
+                models.append(item["id"])
+
+    normalized = sorted({model for model in models if isinstance(model, str) and model.strip()})
+    if not normalized:
+        raise ValueError(f"No models returned by provider '{cfg['provider']}'.")
+    return normalized
+
+
+def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str | None = None) -> dict:
     """Tailor resume to match job description with ATS optimization."""
     system_prompt = (
         "You are an elite ATS-optimization and hiring strategist.\n"
@@ -218,7 +299,7 @@ def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: s
         raise Exception(f"AI Tailor failed: {str(e)}")
 
 
-def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model: str = "gpt-4o") -> dict:
+def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model: str | None = None) -> dict:
     """Generate a cover_letter object from resume and job description."""
     system_prompt = (
         "You are a professional career coach helping someone write an authentic, human cover letter.\n\n"
@@ -311,7 +392,7 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
         raise Exception(f"Cover letter generation failed: {str(e)}")
 
 
-def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt-4o-mini") -> dict:
+def call_ai_ats_score(resume_json: dict, job_description: str, model: str | None = None) -> dict:
     """Analyze resume against job description and provide ATS score."""
     system_prompt = (
         "You are an ATS (Applicant Tracking System) analyzer with deep reasoning capabilities.\n"
@@ -376,7 +457,7 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str = "gpt
         raise Exception(f"ATS analysis failed: {str(e)}")
 
 
-def call_ai_improve_bullets(experience_bullets: list, job_description: str, model: str = "gpt-4o-mini") -> list:
+def call_ai_improve_bullets(experience_bullets: list, job_description: str, model: str | None = None) -> list:
     """Improve bullet points with STAR method and metrics."""
     system_prompt = (
         "You are an expert resume writer specializing in impactful bullet points.\n"
@@ -415,7 +496,7 @@ def call_ai_improve_bullets(experience_bullets: list, job_description: str, mode
         raise Exception(f"Bullet improvement failed: {str(e)}")
 
 
-def call_ai_extract_keywords(job_description: str, model: str = "gpt-4o-mini") -> dict:
+def call_ai_extract_keywords(job_description: str, model: str | None = None) -> dict:
     """Extract important keywords from job description."""
     system_prompt = (
         "Extract key information from the job description.\n"
@@ -439,7 +520,7 @@ def call_ai_extract_keywords(job_description: str, model: str = "gpt-4o-mini") -
         raise Exception(f"Keyword extraction failed: {str(e)}")
 
 
-def call_ai_rewrite_objective(current_objective: str, job_description: str, model: str = "gpt-4o-mini") -> str:
+def call_ai_rewrite_objective(current_objective: str, job_description: str, model: str | None = None) -> str:
     """Rewrite career objective for specific role."""
     system_prompt = (
         "Rewrite the career objective to be highly targeted to the job description.\n"
@@ -460,7 +541,7 @@ def call_ai_rewrite_objective(current_objective: str, job_description: str, mode
         raise Exception(f"Objective rewrite failed: {str(e)}")
 
 
-def call_ai_compress_resume(resume_json: dict, model: str = "gpt-4o-mini") -> dict:
+def call_ai_compress_resume(resume_json: dict, model: str | None = None) -> dict:
     """Intelligently compress resume to fit one page while maintaining impact."""
     system_prompt = (
         "You are an expert at condensing resumes to fit one page while maintaining maximum impact.\n\n"
@@ -490,7 +571,7 @@ def call_ai_improve_from_ats(
     resume_json: dict,
     ats_results: dict,
     job_description: str,
-    model: str = "gpt-4o-mini",
+    model: str | None = None,
 ) -> dict:
     """Improve resume based on ATS analysis results."""
     system_prompt = (
