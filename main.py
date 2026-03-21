@@ -110,7 +110,7 @@ def _init_ai_runtime_state() -> None:
 
 
 def render_ai_provider_settings() -> None:
-    """Render runtime AI provider settings in a glass-style popover."""
+    """Render runtime AI provider settings in a visible glass-style panel."""
     _init_ai_runtime_state()
     provider_choices = get_provider_choices()
     runtime_cfg = st.session_state["ai_runtime_config"]
@@ -149,12 +149,12 @@ def render_ai_provider_settings() -> None:
         unsafe_allow_html=True,
     )
 
-    with st.popover("🫧 AI Provider Settings"):
+    with st.container():
         st.markdown(
             """
             <div class="glass-card">
-                <strong>Switch providers at runtime.</strong><br/>
-                Pick a provider, paste an API key, optionally override the base URL, then fetch models.
+                <strong>🫧 AI Provider Settings</strong><br/>
+                Switch providers at runtime, paste an API key securely, optionally override the base URL, and fetch available models without editing env files.
             </div>
             """,
             unsafe_allow_html=True,
@@ -240,10 +240,11 @@ def render_ai_provider_settings() -> None:
             st.caption("Tip: check the provider, base URL, and API key, then try Fetch Models again.")
 
         active_model = st.session_state["ai_runtime_config"].get("model") or "env/default"
-        st.info(
-            f"Active provider: {provider_choices.get(selected_provider, selected_provider)} | "
-            f"Active model: {active_model}"
-        )
+        summary_col1, summary_col2 = st.columns(2)
+        with summary_col1:
+            st.info(f"Active provider: {provider_choices.get(selected_provider, selected_provider)}")
+        with summary_col2:
+            st.info(f"Active model: {active_model}")
 
 
 def render_job_tracker():
@@ -561,6 +562,7 @@ def main():
         return
 
     st.title("🤖 AI-Powered Resume Generator")
+    render_ai_provider_settings()
     
     # Load JSON data first
     if not JSON_PATH.exists():
@@ -702,7 +704,7 @@ def main():
     # ============== AI FEATURES SECTION ==============
     with st.expander("🤖 AI Features", expanded=True):
         st.subheader("AI Tools")
-        render_ai_provider_settings()
+        st.caption("Provider settings are shown above so they are always visible on load.")
         
         # Row 1: Main AI Actions
         ai_col1, ai_col2, ai_col3 = st.columns(3)

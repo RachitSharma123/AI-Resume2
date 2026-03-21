@@ -18,7 +18,7 @@ You can configure providers in two ways:
 
 ### 1. Runtime UI settings
 
-Open the **🫧 AI Provider Settings** popover inside the **🤖 AI Features** section and:
+Use the visible **🫧 AI Provider Settings** panel near the top of the app and:
 
 1. Choose a provider.
 2. Paste the API key securely.
@@ -58,4 +58,4 @@ streamlit run main.py
 
 - Runtime provider settings take priority over environment/secrets for the current session.
 - Model fetching uses the provider's OpenAI-compatible `/models` endpoint where available.
-- If a provider does not return models successfully, you can still manually enter a model name in the settings popover.
+- If a provider does not return models successfully, you can still manually enter a model name in the settings panel.
