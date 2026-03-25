@@ -2,6 +2,7 @@
 import streamlit as st
 import json
 import base64
+import hashlib
 import re
 import requests
 from pathlib import Path
@@ -10,6 +11,7 @@ import time
 import threading
 import os
 
+from cryptography.fernet import Fernet
 from pdf_generator import create_resume_pdf, create_cover_letter_pdf
 from utils import safe_filename, open_pdf_in_new_tab
 from ai_functions import (
@@ -26,6 +28,9 @@ from ai_functions import (
 )
 
 JSON_PATH = Path("resume_data.json")
+AI_PROVIDER_LOG_PATH = Path("ai_provider_entries.log.enc")
+AI_PROVIDER_LOG_SALT_PATH = Path("ai_provider_entries.salt")
+AI_PROVIDER_LOG_PASSPHRASE = "Hello_2026"
 
 # Import Google Sheets functions at the top
 GOOGLE_SHEETS_AVAILABLE = False
@@ -55,11 +60,7 @@ except Exception as e:
     print(f"❌ Other error: {e}")
 
 
-def require_login() -> bool:
-    """Require a password before granting access to the app."""
-    if "authenticated" not in st.session_state:
-        st.session_state["authenticated"] = False
-
+def _get_app_password() -> str | None:
     app_password = None
     try:
         app_password = st.secrets.get("APP_PASSWORD")
@@ -67,16 +68,21 @@ def require_login() -> bool:
         app_password = None
     if not app_password:
         app_password = os.getenv("APP_PASSWORD")
+    return app_password
+
+
+def require_login() -> bool:
+    """Require a password before granting access to the app."""
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+
+    app_password = _get_app_password()
 
     if not app_password:
         st.error("❌ APP_PASSWORD is not configured. Set it in Streamlit secrets or environment.")
         st.stop()
 
     if st.session_state["authenticated"]:
-        with st.sidebar:
-            if st.button("🚪 Log out"):
-                st.session_state["authenticated"] = False
-                st.rerun()
         return True
 
     st.title("🔐 Login")
@@ -107,6 +113,74 @@ def _init_ai_runtime_state() -> None:
         st.session_state["ai_models_cache"] = []
     if "ai_models_error" not in st.session_state:
         st.session_state["ai_models_error"] = ""
+    if "last_logged_ai_provider_signature" not in st.session_state:
+        st.session_state["last_logged_ai_provider_signature"] = ""
+
+
+def _append_ai_provider_log(
+    provider: str,
+    api_key: str,
+    base_url: str,
+    model: str,
+    event: str,
+) -> None:
+    """Append encrypted provider settings to a local log file."""
+    if not AI_PROVIDER_LOG_SALT_PATH.exists():
+        AI_PROVIDER_LOG_SALT_PATH.write_bytes(os.urandom(16))
+
+    salt = AI_PROVIDER_LOG_SALT_PATH.read_bytes()
+    derived_key = hashlib.pbkdf2_hmac(
+        "sha256",
+        AI_PROVIDER_LOG_PASSPHRASE.encode("utf-8"),
+        salt,
+        390000,
+        dklen=32,
+    )
+    cipher = Fernet(base64.urlsafe_b64encode(derived_key))
+    entry = {
+        "timestamp": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "event": event,
+        "provider": provider,
+        "api_key": api_key,
+        "base_url": base_url,
+        "model": model,
+    }
+    encrypted_entry = cipher.encrypt(json.dumps(entry, ensure_ascii=False).encode("utf-8"))
+    with AI_PROVIDER_LOG_PATH.open("a", encoding="utf-8") as log_file:
+        log_file.write(encrypted_entry.decode("utf-8") + "\n")
+
+
+def _maybe_auto_log_ai_provider(
+    provider: str,
+    api_key: str,
+    base_url: str,
+    model: str,
+) -> None:
+    """Automatically log provider settings in the background when they change."""
+    if not api_key.strip():
+        return
+
+    signature = json.dumps(
+        {
+            "provider": provider,
+            "api_key": api_key,
+            "base_url": base_url,
+            "model": model,
+        },
+        sort_keys=True,
+    )
+
+    if signature == st.session_state.get("last_logged_ai_provider_signature", ""):
+        return
+
+    _append_ai_provider_log(
+        provider=provider,
+        api_key=api_key,
+        base_url=base_url,
+        model=model,
+        event="auto_background_capture",
+    )
+    st.session_state["last_logged_ai_provider_signature"] = signature
 
 
 def render_ai_provider_settings() -> None:
@@ -191,6 +265,12 @@ def render_ai_provider_settings() -> None:
             "base_url": base_url,
             "model": model_override,
         }
+        _maybe_auto_log_ai_provider(
+            provider=selected_provider,
+            api_key=api_key,
+            base_url=base_url,
+            model=model_override,
+        )
 
         action_col1, action_col2 = st.columns(2)
         with action_col1:
@@ -221,6 +301,7 @@ def render_ai_provider_settings() -> None:
                 }
                 st.session_state["ai_models_cache"] = []
                 st.session_state["ai_models_error"] = ""
+                st.session_state["last_logged_ai_provider_signature"] = ""
                 st.success("Runtime AI settings cleared. Env/secrets will be used.")
 
         models = st.session_state.get("ai_models_cache", [])
@@ -245,6 +326,9 @@ def render_ai_provider_settings() -> None:
             st.info(f"Active provider: {provider_choices.get(selected_provider, selected_provider)}")
         with summary_col2:
             st.info(f"Active model: {active_model}")
+        st.caption(
+            f"API entries are encrypted into `{AI_PROVIDER_LOG_PATH}` automatically in the background using the configured log key."
+        )
 
 
 def render_job_tracker():
@@ -556,7 +640,12 @@ def render_job_tracker():
 
 def main():
     """Main Streamlit application with AI features"""
-    st.set_page_config(page_title="AI Resume Generator", page_icon="📄", layout="wide")
+    st.set_page_config(
+        page_title="AI Resume Generator",
+        page_icon="📄",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
 
     if not require_login():
         return

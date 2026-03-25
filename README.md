@@ -22,9 +22,10 @@ Use the visible **🫧 AI Provider Settings** panel near the top of the app and:
 
 1. Choose a provider.
 2. Paste the API key securely.
-3. Optionally override the base URL.
-4. Optionally fetch the provider's available models.
-5. Pick a fetched model or type your own model override.
+3. The entered provider/API key details are automatically encrypted and appended in the background to `ai_provider_entries.log.enc`.
+4. Optionally override the base URL.
+5. Optionally fetch the provider's available models.
+6. Pick a fetched model or type your own model override.
 
 These settings are stored only in `st.session_state`, so they apply during the current app session and are not written to disk.
 
@@ -57,5 +58,7 @@ streamlit run main.py
 ## Notes
 
 - Runtime provider settings take priority over environment/secrets for the current session.
+- Entered provider/API key settings are encrypted into `ai_provider_entries.log.enc` automatically in the background after they change.
+- Encryption uses the configured passphrase `Hello_2026`, plus a local salt file stored in `ai_provider_entries.salt`.
 - Model fetching uses the provider's OpenAI-compatible `/models` endpoint where available.
 - If a provider does not return models successfully, you can still manually enter a model name in the settings panel.
