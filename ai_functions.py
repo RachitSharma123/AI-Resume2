@@ -7,7 +7,6 @@ from functools import lru_cache
 from typing import Optional
 
 from openai import OpenAI
-import streamlit as st
 
 def _parse_ai_json(text: str) -> dict:
     """Parse AI response with robust JSON extraction."""
@@ -68,16 +67,10 @@ def _parse_ai_json(text: str) -> dict:
         return data
 
 def get_openai_api_key() -> str:
-    """Load the OpenAI API key from Streamlit secrets or environment."""
-    api_key = None
-    try:
-        api_key = st.secrets.get("OPENAI_API_KEY")
-    except Exception:
-        api_key = None
+    """Load the OpenAI API key from environment."""
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not set in Streamlit secrets or environment.")
+        raise ValueError("OPENAI_API_KEY not set in environment.")
     return api_key
 
 

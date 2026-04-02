@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pdf_generator.py
+import io
 import json
 import re
 from pathlib import Path
@@ -230,6 +231,34 @@ def create_resume_pdf(json_path="resume_data.json",
         c.drawString(left, y, details)
         y -= spacing_edu_block
 
+    # Projects
+    projects = data.get("projects") or []
+    if projects:
+        y = new_page_if_needed(y)
+        c.setFont(font_bold, font_section_title)
+        c.drawString(left, y, "PROJECTS")
+        y -= (14 * font_scale + MIN_LINE_GAP)
+
+        for proj in projects:
+            y = new_page_if_needed(y)
+            name = proj.get("name", "")
+            details = proj.get("details", "")
+
+            c.setFont(font_bold, font_bullet + 0.5)
+            c.drawString(left, y, name)
+            y -= spacing_bullet_line
+
+            c.setFont(font_regular, font_bullet)
+            detail_lines = wrap_lines(details, content_w - 10, font=font_regular, size=font_bullet)
+            for i, dline in enumerate(detail_lines):
+                if i == 0:
+                    c.drawString(left, y, "-")
+                    c.drawString(left + 10, y, dline)
+                else:
+                    c.drawString(left + 10, y, dline)
+                y -= spacing_bullet_line
+            y -= spacing_after_exp_block
+
     # Certifications
     certs = data.get("certifications") or []
     if certs:
@@ -419,18 +448,27 @@ def create_cover_letter_pdf(json_path="resume_data.json",
 
     y = new_page_if_needed(y)
 
-    # Greeting
-    opening = str(cl.get("opening", "")).strip()
-    if opening.lower().startswith("dear"):
-        greeting = opening
-        opening_for_body = ""
+    # Greeting — always just "Dear X," on its own line
+    # If Mercury-2 stuffed the whole first paragraph into opening, split it out
+    opening_raw = str(cl.get("opening", "")).strip()
+    if opening_raw.lower().startswith("dear"):
+        # Extract just the salutation line (up to first comma or newline)
+        first_comma = opening_raw.find(",")
+        if first_comma != -1 and first_comma < 60:
+            greeting = opening_raw[:first_comma + 1]          # "Dear Hiring Manager,"
+            remainder = opening_raw[first_comma + 1:].strip() # rest becomes body
+        else:
+            greeting = f"Dear {recipient or 'Hiring Manager'},"
+            remainder = opening_raw
+        opening_for_body = remainder
     else:
         greeting = f"Dear {recipient or 'Hiring Manager'},"
-        opening_for_body = opening
+        opening_for_body = opening_raw
 
     c.setFont(font_regular, 10.5 * font_scale)
     c.drawString(left, y, greeting)
-    y -= 20 * font_scale
+    y -= 14 * font_scale  # greeting line
+    y -= 10 * font_scale  # blank line after "Dear Hiring Manager,"
     y = new_page_if_needed(y)
 
     # Main letter body
@@ -513,3 +551,384 @@ def create_cover_letter_pdf(json_path="resume_data.json",
 
     c.save()
     print(f"✅ Created cover letter: {output_path}")
+
+
+def create_resume_pdf_bytes(data: dict, font_scale: float = 1.0, font_family: str = "Helvetica") -> bytes:
+    """Generate resume PDF from a dict, return raw PDF bytes (no file I/O)."""
+    buf = io.BytesIO()
+    # Temporarily write to a temp path using BytesIO-backed canvas
+    c_buf = io.BytesIO()
+    _generate_resume_to_canvas(data, c_buf, font_scale, font_family)
+    return c_buf.getvalue()
+
+
+def create_cover_letter_pdf_bytes(data: dict, font_scale: float = 1.0, font_family: str = "Helvetica") -> bytes:
+    """Generate cover letter PDF from a dict, return raw PDF bytes (no file I/O)."""
+    c_buf = io.BytesIO()
+    _generate_cover_letter_to_canvas(data, c_buf, font_scale, font_family)
+    return c_buf.getvalue()
+
+
+def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font_family: str = "Helvetica"):
+    """Internal: render resume onto a canvas writing to output (path or BytesIO)."""
+    from drawing_utils import (
+        PAGE_W, PAGE_H, MIN_LINE_GAP,
+        wrap_lines, draw_boxed_block, draw_wrapped_text,
+        draw_section_title, draw_bullets, draw_divider,
+        draw_page_border
+    )
+
+    if font_family == "Times":
+        font_regular, font_bold = "Times-Roman", "Times-Bold"
+    elif font_family == "Courier":
+        font_regular, font_bold = "Courier", "Courier-Bold"
+    else:
+        font_regular, font_bold = "Helvetica", "Helvetica-Bold"
+
+    font_name = font_scale * 14
+    font_contact = font_scale * 8.5
+    font_section_title = font_scale * 10
+    font_objective = font_scale * 9.5
+    font_skills_label = font_scale * 9.5
+    font_skills_value = font_scale * 9.5
+    font_company = font_scale * 10
+    font_role = font_scale * 9.5
+    font_bullet = font_scale * 9
+    font_education = font_scale * 8
+    font_certification = font_scale * 9
+    font_reference = font_scale * 7.5
+
+    spacing_after_name = font_scale * 14
+    spacing_after_contact = font_scale * 7
+    spacing_after_objective = font_scale * 8
+    spacing_after_skills_section = font_scale * 8
+    spacing_skills_line = font_scale * 11
+    spacing_after_company = font_scale * 12
+    spacing_after_role = font_scale * 12
+    spacing_bullet_line = font_scale * 10
+    spacing_after_exp_block = font_scale * 5
+    spacing_edu_line = font_scale * 10
+    spacing_edu_block = font_scale * 12
+    spacing_cert_line = font_scale * 10
+    spacing_ref_line = font_scale * 9
+
+    c = canvas.Canvas(output, pagesize=A4)
+    draw_page_border(c, PAGE_W, PAGE_H)
+
+    left = 0.5 * cm
+    right = 0.5 * cm
+    top = 0.75 * cm
+    bottom = 0 * cm
+    content_w = PAGE_W - left - right
+    y = PAGE_H - top
+
+    def new_page_if_needed(ypos):
+        if ypos < bottom + 2 * cm:
+            c.showPage()
+            draw_page_border(c, PAGE_W, PAGE_H)
+            return PAGE_H - top
+        return ypos
+
+    name = data.get("name", "YOUR NAME")
+    contact = data.get("contact", "Location | Phone | Email")
+
+    c.setFont(font_bold, font_name)
+    c.drawString(left, y, name)
+    y -= spacing_after_name
+
+    c.setFont(font_regular, font_contact)
+    c.drawString(left, y, contact)
+    y -= spacing_after_contact
+
+    y = draw_divider(c, left, left + content_w, y)
+    y -= 3
+    y = new_page_if_needed(y)
+
+    c.setFont(font_bold, font_section_title)
+    c.drawString(left, y, "CAREER OBJECTIVE")
+    y -= (14 * font_scale + MIN_LINE_GAP)
+
+    objective = data.get("career_objective", "")
+    c.setFont(font_regular, font_objective)
+    for oline in wrap_lines(objective, content_w, font=font_regular, size=font_objective):
+        c.drawString(left, y, oline)
+        y -= 11 * font_scale
+    y -= spacing_after_objective
+
+    y = new_page_if_needed(y)
+    c.setFont(font_bold, font_section_title)
+    c.drawString(left, y, "SKILLS SNAPSHOT")
+    y -= (14 * font_scale + MIN_LINE_GAP)
+
+    label_w = 5.5 * cm
+    gap = 0.4 * cm
+    value_x = left + label_w + gap
+    value_w = content_w - label_w - gap
+
+    for item in (data.get("skills_snapshot") or []):
+        y = new_page_if_needed(y)
+        label = item.get("label", "")
+        value = item.get("value", "")
+        c.setFont(font_bold, font_skills_label)
+        c.drawString(left, y, label)
+        c.setFont(font_regular, font_skills_value)
+        for vline in wrap_lines(value, value_w, font=font_regular, size=font_skills_value):
+            c.drawString(value_x, y, vline)
+            y -= spacing_skills_line
+    y -= spacing_after_skills_section
+
+    y = new_page_if_needed(y)
+    c.setFont(font_bold, font_section_title)
+    c.drawString(left, y, "EXPERIENCE")
+    y -= (14 * font_scale + MIN_LINE_GAP)
+
+    def exp_block(company, role_line, bullets):
+        nonlocal y
+        y = new_page_if_needed(y)
+        c.setFont(font_bold, font_company)
+        c.drawString(left, y, company)
+        y -= spacing_after_company
+        c.setFont(font_bold, font_role)
+        for rline in wrap_lines(role_line, content_w, font=font_bold, size=font_role):
+            c.drawString(left, y, rline)
+            y -= spacing_after_role
+        c.setFont(font_regular, font_bullet)
+        for bullet in bullets:
+            for i, bline in enumerate(wrap_lines(bullet, content_w - 10, font=font_regular, size=font_bullet)):
+                if i == 0:
+                    c.drawString(left, y, "•")
+                    c.drawString(left + 10, y, bline)
+                else:
+                    c.drawString(left + 10, y, bline)
+                y -= spacing_bullet_line
+        y -= spacing_after_exp_block
+
+    for exp in (data.get("experience") or []):
+        exp_block(exp.get("company", ""), exp.get("role_line", ""), exp.get("bullets", []))
+
+    y = new_page_if_needed(y)
+    c.setFont(font_bold, font_section_title)
+    c.drawString(left, y, "EDUCATION")
+    y -= (14 * font_scale + MIN_LINE_GAP)
+
+    for edu in (data.get("education") or []):
+        y = new_page_if_needed(y)
+        c.setFont(font_bold, font_education)
+        c.drawString(left, y, edu.get("degree", ""))
+        y -= spacing_edu_line
+        c.setFont(font_regular, font_education)
+        c.drawString(left, y, edu.get("details", ""))
+        y -= spacing_edu_block
+
+    projects = data.get("projects") or []
+    if projects:
+        y = new_page_if_needed(y)
+        c.setFont(font_bold, font_section_title)
+        c.drawString(left, y, "PROJECTS")
+        y -= (14 * font_scale + MIN_LINE_GAP)
+        for proj in projects:
+            y = new_page_if_needed(y)
+            c.setFont(font_bold, font_bullet + 0.5)
+            c.drawString(left, y, proj.get("name", ""))
+            y -= spacing_bullet_line
+            c.setFont(font_regular, font_bullet)
+            for i, dline in enumerate(wrap_lines(proj.get("details", ""), content_w - 10, font=font_regular, size=font_bullet)):
+                if i == 0:
+                    c.drawString(left, y, "-")
+                    c.drawString(left + 10, y, dline)
+                else:
+                    c.drawString(left + 10, y, dline)
+                y -= spacing_bullet_line
+            y -= spacing_after_exp_block
+
+    certs = data.get("certifications") or []
+    if certs:
+        y = new_page_if_needed(y)
+        c.setFont(font_bold, font_section_title)
+        c.drawString(left, y, "CERTIFICATIONS")
+        y -= (14 * font_scale + MIN_LINE_GAP)
+        c.setFont(font_regular, font_certification)
+        for cert in certs:
+            for i, cline in enumerate(wrap_lines(cert, content_w - 10, font=font_regular, size=font_certification)):
+                if i == 0:
+                    c.drawString(left, y, "•")
+                    c.drawString(left + 10, y, cline)
+                else:
+                    c.drawString(left + 10, y, cline)
+                y -= spacing_cert_line
+        y = draw_divider(c, left, left + content_w, y)
+
+    additional_info = data.get("additional_information") or {}
+    if isinstance(additional_info, dict) and additional_info:
+        y = new_page_if_needed(y)
+        c.setFont(font_bold, font_section_title)
+        c.drawString(left, y, "ADDITIONAL INFORMATION")
+        y -= (14 * font_scale + MIN_LINE_GAP)
+        c.setFont(font_regular, font_certification)
+        for key, value in additional_info.items():
+            line = f"{str(key).replace('_', ' ').title()}: {value}"
+            for i, iline in enumerate(wrap_lines(line, content_w - 10, font=font_regular, size=font_certification)):
+                if i == 0:
+                    c.drawString(left, y, "•")
+                    c.drawString(left + 10, y, iline)
+                else:
+                    c.drawString(left + 10, y, iline)
+                y -= spacing_cert_line
+        y = draw_divider(c, left, left + content_w, y)
+
+    refs = data.get("references") or []
+    if refs:
+        y = new_page_if_needed(y)
+        c.setFont(font_bold, font_section_title)
+        c.drawString(left, y - 2, "REFERENCE")
+        y -= (14 * font_scale + MIN_LINE_GAP)
+        c.setFont(font_regular, font_reference)
+        for r in refs:
+            c.drawString(left, y, r)
+            y -= spacing_ref_line
+
+    c.save()
+
+
+def _generate_cover_letter_to_canvas(data: dict, output, font_scale: float = 1.0, font_family: str = "Helvetica"):
+    """Internal: render cover letter onto a canvas writing to output (path or BytesIO)."""
+    from drawing_utils import PAGE_W, PAGE_H, wrap_lines, draw_page_border
+
+    if font_family == "Times":
+        font_regular, font_bold = "Times-Roman", "Times-Bold"
+    elif font_family == "Courier":
+        font_regular, font_bold = "Courier", "Courier-Bold"
+    else:
+        font_regular, font_bold = "Helvetica", "Helvetica-Bold"
+
+    cl = data.get("cover_letter", {})
+    for _ in range(4):
+        if isinstance(cl, dict) and isinstance(cl.get("cover_letter"), dict):
+            cl = cl["cover_letter"]
+        else:
+            break
+    if not isinstance(cl, dict):
+        cl = {}
+
+    body_points = cl.get("body_points", [])
+    if isinstance(body_points, str):
+        body_points = [body_points]
+    body_points = [str(p).strip() for p in (body_points or []) if str(p).strip()]
+    if not body_points:
+        fallback = str(data.get("career_objective", "")).strip()
+        if fallback:
+            body_points = [fallback]
+    cl["body_points"] = body_points
+
+    c = canvas.Canvas(output, pagesize=A4)
+    draw_page_border(c, PAGE_W, PAGE_H)
+
+    left = 0.6 * cm
+    right = 0.6 * cm
+    top = 1.2 * cm
+    bottom = 1.2 * cm
+    content_w = PAGE_W - left - right
+    y = PAGE_H - top
+
+    def new_page_if_needed(ypos):
+        if ypos < bottom + 2 * cm:
+            c.showPage()
+            draw_page_border(c, PAGE_W, PAGE_H)
+            return PAGE_H - top
+        return ypos
+
+    date_val = cl.get("date", "AUTO")
+    if str(date_val).strip().upper() == "AUTO" or not str(date_val).strip():
+        date_val = datetime.now().strftime("%d %B %Y")
+
+    c.setFont(font_regular, 10 * font_scale)
+    c.drawString(left, y, str(date_val))
+    y -= 18 * font_scale
+
+    recipient = str(cl.get("recipient", "Hiring Manager")).strip()
+    company = str(cl.get("company", "")).strip()
+    company_address = str(cl.get("company_address", "")).strip()
+
+    c.setFont(font_regular, 10 * font_scale)
+    if recipient:
+        c.drawString(left, y, recipient)
+        y -= 12 * font_scale
+    if company:
+        c.drawString(left, y, company)
+        y -= 12 * font_scale
+    if company_address:
+        for addr_line in wrap_lines(company_address, content_w, font=font_regular, size=10 * font_scale):
+            c.drawString(left, y, addr_line)
+            y -= 12 * font_scale
+        y -= 2
+    y -= 8 * font_scale
+    y = new_page_if_needed(y)
+
+    role_title = str(cl.get("role_title", "")).strip()
+    subject = str(cl.get("subject", "")).strip()
+    if role_title and "[Role Title]" in subject:
+        subject = subject.replace("[Role Title]", role_title)
+
+    if subject:
+        c.setFont(font_bold, 10.5 * font_scale)
+        for sline in wrap_lines(subject, content_w, font=font_bold, size=10.5 * font_scale):
+            c.drawString(left, y, sline)
+            y -= 13 * font_scale
+        y -= 6
+    y = new_page_if_needed(y)
+
+    opening_raw = str(cl.get("opening", "")).strip()
+    if opening_raw.lower().startswith("dear"):
+        first_comma = opening_raw.find(",")
+        if first_comma != -1 and first_comma < 60:
+            greeting = opening_raw[:first_comma + 1]
+            remainder = opening_raw[first_comma + 1:].strip()
+        else:
+            greeting = f"Dear {recipient or 'Hiring Manager'},"
+            remainder = opening_raw
+        opening_for_body = remainder
+    else:
+        greeting = f"Dear {recipient or 'Hiring Manager'},"
+        opening_for_body = opening_raw
+
+    c.setFont(font_regular, 10.5 * font_scale)
+    c.drawString(left, y, greeting)
+    y -= 14 * font_scale
+    y -= 10 * font_scale
+    y = new_page_if_needed(y)
+
+    if opening_for_body:
+        for oline in wrap_lines(opening_for_body, content_w, font=font_regular, size=10.5 * font_scale):
+            c.drawString(left, y, oline)
+            y -= 14 * font_scale
+        y -= 8 * font_scale
+
+    for p in body_points:
+        for pline in wrap_lines(p, content_w, font=font_regular, size=10.5 * font_scale):
+            c.drawString(left, y, pline)
+            y -= 14 * font_scale
+        y -= 8 * font_scale
+    y = new_page_if_needed(y)
+
+    closing = str(cl.get("closing", "Kind regards,")).strip()
+    y -= 2
+    c.setFont(font_regular, 10.5 * font_scale)
+    c.drawString(left, y, closing)
+    y -= 22 * font_scale
+
+    signature_name = str(cl.get("signature_name", data.get("name", ""))).strip()
+    phone_number = str(cl.get("phone_number", "")).strip()
+    email_addr = str(cl.get("email", "")).strip()
+
+    c.setFont(font_bold, 10.5 * font_scale)
+    if signature_name:
+        c.drawString(left, y, signature_name)
+        y -= 14 * font_scale
+    c.setFont(font_regular, 10 * font_scale)
+    if phone_number:
+        c.drawString(left, y, phone_number)
+        y -= 12 * font_scale
+    if email_addr:
+        c.drawString(left, y, email_addr)
+
+    c.save()

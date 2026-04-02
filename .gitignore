@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.local
+*.pdf
+resumes_generated/
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+.vercel/
