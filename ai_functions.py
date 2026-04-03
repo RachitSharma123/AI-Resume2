@@ -557,6 +557,38 @@ def call_ai_compress_resume(resume_json: dict, model: str | None = None) -> dict
         raise Exception(f"Resume compression failed: {str(e)}")
 
 
+def call_ai_extract_resume_from_text(raw_text: str, model: str | None = None) -> dict:
+    """Parse unstructured resume text (from PDF) into the standard resume JSON schema."""
+    system_prompt = (
+        "You are an expert resume parser. Extract information from the raw resume text and return a JSON object "
+        "that EXACTLY matches this schema (use empty strings or empty arrays for missing fields — never omit keys):\n\n"
+        "{\n"
+        '  "name": "string",\n'
+        '  "contact": "string (location | phone | email on one line)",\n'
+        '  "career_objective": "string",\n'
+        '  "skills_snapshot": [{"label": "string", "value": "string"}],\n'
+        '  "experience": [\n'
+        '    {"company": "string", "role_line": "Job Title | Start – End", "bullets": ["string"]}\n'
+        '  ],\n'
+        '  "education": [{"degree": "string", "details": "string"}],\n'
+        '  "certifications": ["string"],\n'
+        '  "additional_information": {},\n'
+        '  "references": []\n'
+        "}\n\n"
+        "IMPORTANT:\n"
+        "- Handle garbled text, merged lines, and bullet character artifacts from PDF extraction\n"
+        "- For skills_snapshot: group skills into logical categories (Technical Skills, Soft Skills, Tools, etc.)\n"
+        "- For experience bullets: each bullet should be a separate string in the array\n"
+        "- Return ONLY the JSON object — no markdown, no explanations, no extra text\n"
+    )
+
+    try:
+        text = _chat_completion(system_prompt, raw_text, model=model, temperature=0.3)
+        return _parse_ai_json(text)
+    except Exception as e:
+        raise Exception(f"Resume extraction failed: {str(e)}")
+
+
 def call_ai_improve_from_ats(
     resume_json: dict,
     ats_results: dict,

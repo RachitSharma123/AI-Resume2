@@ -1,19 +1,5 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
-export function getToken(): string {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem("ar_token") || "";
-}
-
-export function setToken(token: string) {
-  localStorage.setItem("ar_token", token);
-}
-
-export function clearToken() {
-  localStorage.removeItem("ar_token");
-  localStorage.removeItem("ar_resume");
-}
-
 export function getResume(): Record<string, unknown> | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem("ar_resume");
@@ -25,13 +11,15 @@ export function saveResume(data: Record<string, unknown>) {
   localStorage.setItem("ar_resume", JSON.stringify(data));
 }
 
+export function clearResume() {
+  localStorage.removeItem("ar_resume");
+}
+
 async function apiFetch(path: string, options: RequestInit = {}) {
-  const token = getToken();
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "x-token": token,
       ...(options.headers || {}),
     },
   });
@@ -43,8 +31,19 @@ async function apiFetch(path: string, options: RequestInit = {}) {
 }
 
 export const api = {
-  login: (password: string) =>
-    apiFetch("/login", { method: "POST", body: JSON.stringify({ password }) }),
+  extractResume: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${BASE}/extract-resume`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || "Extraction failed");
+    }
+    return res.json();
+  },
 
   tailor: (resume: object, job_description: string) =>
     apiFetch("/tailor", { method: "POST", body: JSON.stringify({ resume, job_description }) }),
@@ -64,11 +63,14 @@ export const api = {
   improveFromAts: (resume: object, ats_results: object, job_description: string) =>
     apiFetch("/improve-from-ats", { method: "POST", body: JSON.stringify({ resume, ats_results, job_description }) }),
 
-  pdfResume: (resume: object) =>
-    apiFetch("/pdf/resume", { method: "POST", body: JSON.stringify({ resume }) }),
+  extractKeywords: (job_description: string) =>
+    apiFetch("/extract-keywords", { method: "POST", body: JSON.stringify({ job_description }) }),
 
-  pdfCoverLetter: (resume: object) =>
-    apiFetch("/pdf/cover-letter", { method: "POST", body: JSON.stringify({ resume }) }),
+  pdfResume: (resume: object, font_scale?: number, font_family?: string) =>
+    apiFetch("/pdf/resume", { method: "POST", body: JSON.stringify({ resume, font_scale, font_family }) }),
+
+  pdfCoverLetter: (resume: object, font_scale?: number, font_family?: string) =>
+    apiFetch("/pdf/cover-letter", { method: "POST", body: JSON.stringify({ resume, font_scale, font_family }) }),
 
   health: () => apiFetch("/health"),
 };

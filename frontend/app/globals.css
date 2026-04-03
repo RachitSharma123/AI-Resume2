@@ -209,6 +209,14 @@ textarea { min-height: 120px; }
 .stat-val { font-size: 2rem; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
 .stat-label { font-size: 0.72rem; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
 
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.upload-zone:hover { border-color: var(--accent); background: rgba(245,166,35,0.03); }
+.upload-zone.dragging { border-color: var(--accent); background: rgba(245,166,35,0.06); }
+
 @media (max-width: 768px) {
   .sidebar { display: none; }
   .main-content { margin-left: 0; max-width: 100vw; padding: 1rem; }

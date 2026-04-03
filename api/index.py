@@ -1,18 +1,18 @@
 import sys
 import os
+import io
 import base64
-import hashlib
-import secrets
 
 # Add repo root to path so we can import existing modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
 from pydantic import BaseModel
-from typing import Optional, List, Any
+from typing import List
 from mangum import Mangum
+
+import pypdf
 
 from ai_functions import (
     call_ai_tailor_resume,
@@ -23,6 +23,7 @@ from ai_functions import (
     call_ai_rewrite_objective,
     call_ai_compress_resume,
     call_ai_improve_from_ats,
+    call_ai_extract_resume_from_text,
 )
 from pdf_generator import create_resume_pdf_bytes, create_cover_letter_pdf_bytes
 
@@ -36,40 +37,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-APP_PASSWORD = os.getenv("APP_PASSWORD", "")
-# Simple token: sha256(APP_PASSWORD + SECRET_SALT)
-SECRET_SALT = os.getenv("SECRET_SALT", "ai-resume-salt-2024")
 
+# ── Resume extraction ──────────────────────────────────────────────────────────
 
-def _make_token(password: str) -> str:
-    return hashlib.sha256(f"{password}{SECRET_SALT}".encode()).hexdigest()
+@app.post("/api/extract-resume")
+async def extract_resume(file: UploadFile = File(...)):
+    if not (file.filename or "").lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
 
+    contents = await file.read()
+    if len(contents) > 10_000_000:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 10MB.")
 
-def _verify_token(token: str) -> bool:
-    if not APP_PASSWORD:
-        return True  # No password set — open access
-    expected = _make_token(APP_PASSWORD)
-    return secrets.compare_digest(token, expected)
+    try:
+        reader = pypdf.PdfReader(io.BytesIO(contents))
+        raw_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Could not read PDF: {str(e)}")
 
+    if not raw_text.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Could not extract text from this PDF. It may be a scanned image. Please use a text-based PDF or paste your resume text manually."
+        )
 
-def require_auth(x_token: Optional[str] = Header(None)):
-    if not _verify_token(x_token or ""):
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-
-# ── Auth ──────────────────────────────────────────────────────────────────────
-
-class LoginRequest(BaseModel):
-    password: str
-
-
-@app.post("/api/login")
-def login(body: LoginRequest):
-    if not APP_PASSWORD:
-        return {"token": "no-auth"}
-    if body.password != APP_PASSWORD:
-        raise HTTPException(status_code=401, detail="Invalid password")
-    return {"token": _make_token(body.password)}
+    try:
+        result = call_ai_extract_resume_from_text(raw_text)
+        return {"resume": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── AI endpoints ──────────────────────────────────────────────────────────────
@@ -81,8 +77,7 @@ class TailorRequest(BaseModel):
 
 
 @app.post("/api/tailor")
-def tailor_resume(body: TailorRequest, x_token: Optional[str] = Header(None)):
-    require_auth(x_token)
+def tailor_resume(body: TailorRequest):
     try:
         result = call_ai_tailor_resume(body.resume, body.job_description, model=body.model)
         return {"resume": result}
@@ -97,8 +92,7 @@ class CoverLetterRequest(BaseModel):
 
 
 @app.post("/api/cover-letter")
-def cover_letter(body: CoverLetterRequest, x_token: Optional[str] = Header(None)):
-    require_auth(x_token)
+def cover_letter(body: CoverLetterRequest):
     try:
         result = call_ai_generate_cover_letter(body.resume, body.job_description, model=body.model)
         return {"cover_letter": result}
@@ -113,8 +107,7 @@ class ATSRequest(BaseModel):
 
 
 @app.post("/api/ats-score")
-def ats_score(body: ATSRequest, x_token: Optional[str] = Header(None)):
-    require_auth(x_token)
+def ats_score(body: ATSRequest):
     try:
         result = call_ai_ats_score(body.resume, body.job_description, model=body.model)
         return result
@@ -129,8 +122,7 @@ class ImproveBulletsRequest(BaseModel):
 
 
 @app.post("/api/improve-bullets")
-def improve_bullets(body: ImproveBulletsRequest, x_token: Optional[str] = Header(None)):
-    require_auth(x_token)
+def improve_bullets(body: ImproveBulletsRequest):
     try:
         result = call_ai_improve_bullets(body.bullets, body.job_description, model=body.model)
         return {"bullets": result}
@@ -144,8 +136,7 @@ class CompressRequest(BaseModel):
 
 
 @app.post("/api/compress")
-def compress_resume(body: CompressRequest, x_token: Optional[str] = Header(None)):
-    require_auth(x_token)
+def compress_resume(body: CompressRequest):
     try:
         result = call_ai_compress_resume(body.resume, model=body.model)
         return {"resume": result}
@@ -161,8 +152,7 @@ class ImproveFromATSRequest(BaseModel):
 
 
 @app.post("/api/improve-from-ats")
-def improve_from_ats(body: ImproveFromATSRequest, x_token: Optional[str] = Header(None)):
-    require_auth(x_token)
+def improve_from_ats(body: ImproveFromATSRequest):
     try:
         result = call_ai_improve_from_ats(body.resume, body.ats_results, body.job_description, model=body.model)
         return {"resume": result}
@@ -176,8 +166,7 @@ class ExtractKeywordsRequest(BaseModel):
 
 
 @app.post("/api/extract-keywords")
-def extract_keywords(body: ExtractKeywordsRequest, x_token: Optional[str] = Header(None)):
-    require_auth(x_token)
+def extract_keywords(body: ExtractKeywordsRequest):
     try:
         result = call_ai_extract_keywords(body.job_description, model=body.model)
         return result
@@ -194,8 +183,7 @@ class ResumePDFRequest(BaseModel):
 
 
 @app.post("/api/pdf/resume")
-def pdf_resume(body: ResumePDFRequest, x_token: Optional[str] = Header(None)):
-    require_auth(x_token)
+def pdf_resume(body: ResumePDFRequest):
     try:
         pdf_bytes = create_resume_pdf_bytes(body.resume, body.font_scale, body.font_family)
         b64 = base64.b64encode(pdf_bytes).decode()
@@ -211,10 +199,8 @@ class CoverLetterPDFRequest(BaseModel):
 
 
 @app.post("/api/pdf/cover-letter")
-def pdf_cover_letter(body: CoverLetterPDFRequest, x_token: Optional[str] = Header(None)):
-    require_auth(x_token)
+def pdf_cover_letter(body: CoverLetterPDFRequest):
     try:
-        # Ensure cover_letter is present in resume dict
         pdf_bytes = create_cover_letter_pdf_bytes(body.resume, body.font_scale, body.font_family)
         b64 = base64.b64encode(pdf_bytes).decode()
         return {"pdf_base64": b64, "filename": "cover_letter.pdf"}
