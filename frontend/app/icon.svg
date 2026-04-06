@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="8" fill="url(#g)"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <!-- Document shape -->
+  <rect x="8" y="6" width="13" height="17" rx="2" fill="white" opacity="0.95"/>
+  <rect x="11" y="10" width="7" height="1.5" rx="0.75" fill="#f59e0b"/>
+  <rect x="11" y="13" width="7" height="1.5" rx="0.75" fill="#f59e0b" opacity="0.6"/>
+  <rect x="11" y="16" width="5" height="1.5" rx="0.75" fill="#f59e0b" opacity="0.4"/>
+  <!-- Star spark -->
+  <circle cx="22" cy="10" r="4" fill="#fff" opacity="0.2"/>
+  <text x="19.5" y="13.5" font-size="7" fill="white">✦</text>
+</svg>

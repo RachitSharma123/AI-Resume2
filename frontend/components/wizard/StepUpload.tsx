@@ -77,8 +77,20 @@ export default function StepUpload({
 
   return (
     <div>
-      <div className="page-title">Upload Your Resume</div>
-      <div className="page-sub">Upload a PDF and we'll extract your resume data automatically using AI.</div>
+      <div style={{
+        background: "linear-gradient(135deg, #fff8ee 0%, #fffdf9 100%)",
+        border: "1px solid var(--border)",
+        borderRadius: 16,
+        padding: "1.75rem 2rem",
+        marginBottom: "1.5rem",
+        boxShadow: "0 1px 4px rgba(180,90,0,0.06)",
+      }}>
+        <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🚀</div>
+        <div className="page-title">You're going to get that job.</div>
+        <div className="page-sub" style={{ marginBottom: 0 }}>
+          Upload your resume and let AI tailor it to any job in seconds — ATS-optimised, cover letter included. Completely free.
+        </div>
+      </div>
 
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -95,14 +107,14 @@ export default function StepUpload({
             {loading ? (
               <div>
                 <div className="spinner" style={{ width: 32, height: 32, margin: "0 auto 1rem" }} />
-                <div style={{ color: "var(--muted)", fontSize: "0.9rem" }}>Extracting resume data with AI…</div>
-                <div style={{ color: "var(--muted)", fontSize: "0.8rem", marginTop: "0.5rem" }}>This may take 5–15 seconds</div>
+                <div style={{ color: "var(--muted)", fontSize: "0.9rem", fontWeight: 600 }}>Reading your resume with AI…</div>
+                <div style={{ color: "var(--muted)", fontSize: "0.8rem", marginTop: "0.5rem" }}>Hang tight, this takes 5–15 seconds ☕</div>
               </div>
             ) : (
               <div>
-                <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>⬆</div>
-                <div style={{ fontWeight: 600, marginBottom: "0.4rem" }}>Drop your PDF here, or click to browse</div>
-                <div style={{ color: "var(--muted)", fontSize: "0.85rem" }}>Text-based PDFs only — scanned images won't work</div>
+                <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>📄</div>
+                <div style={{ fontWeight: 700, fontSize: "1rem", marginBottom: "0.4rem" }}>Drop your resume here, or click to browse</div>
+                <div style={{ color: "var(--muted)", fontSize: "0.85rem" }}>PDF format · AI will extract everything automatically</div>
               </div>
             )}
             <input

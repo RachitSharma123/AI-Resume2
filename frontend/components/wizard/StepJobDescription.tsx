@@ -51,8 +51,8 @@ export default function StepJobDescription({
 
   return (
     <div>
-      <div className="page-title">Job Description</div>
-      <div className="page-sub">Paste the full job description. AI will tailor your resume to match it.</div>
+      <div className="page-title">Found your dream role? Let's go.</div>
+      <div className="page-sub">Paste the job description below — AI will rewrite your resume to match it perfectly and boost your ATS score.</div>
 
       <div className="card">
         <div className="card-title">// job_description</div>

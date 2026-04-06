@@ -10,19 +10,27 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 
 from drawing_utils import (
-    PAGE_W, PAGE_H, MIN_LINE_GAP,
-    wrap_lines, draw_boxed_block, draw_wrapped_text,
-    draw_section_title, draw_bullets, draw_divider,
-    draw_page_border
+    PAGE_W,
+    PAGE_H,
+    MIN_LINE_GAP,
+    wrap_lines,
+    draw_boxed_block,
+    draw_wrapped_text,
+    draw_section_title,
+    draw_bullets,
+    draw_divider,
+    draw_page_border,
 )
 
 
-def create_resume_pdf(json_path="resume_data.json",
-                      output_path="Rachit_Sharma_Resume_Generated.pdf",
-                      font_scale=1.0,           # ✅ CORRECT - actual value
-                      font_family="Helvetica"): # ✅ CORRECT - actual value
+def create_resume_pdf(
+    json_path="resume_data.json",
+    output_path="Rachit_Sharma_Resume_Generated.pdf",
+    font_scale=1.0,  # ✅ CORRECT - actual value
+    font_family="Helvetica",
+):  # ✅ CORRECT - actual value
     """Generate resume PDF from JSON data with customizable fonts.
-    
+
     Args:
         json_path: Path to JSON file
         output_path: Output PDF path
@@ -39,7 +47,7 @@ def create_resume_pdf(json_path="resume_data.json",
     else:  # Helvetica (default)
         font_regular = "Helvetica"
         font_bold = "Helvetica-Bold"
-    
+
     # Apply font scale to all font sizes
     font_name = font_scale * 14
     font_contact = font_scale * 8.5
@@ -53,7 +61,7 @@ def create_resume_pdf(json_path="resume_data.json",
     font_education = font_scale * 8
     font_certification = font_scale * 9
     font_reference = font_scale * 7.5
-    
+
     # Apply spacing scale
     spacing_after_name = font_scale * 14
     spacing_after_contact = font_scale * 7
@@ -126,7 +134,7 @@ def create_resume_pdf(json_path="resume_data.json",
 
     c.setFont(font_bold, font_section_title)
     c.drawString(left, y, "CAREER OBJECTIVE")
-    y -= (14 * font_scale + MIN_LINE_GAP)
+    y -= 14 * font_scale + MIN_LINE_GAP
 
     objective = data.get("career_objective", "")
     c.setFont(font_regular, font_objective)
@@ -140,14 +148,14 @@ def create_resume_pdf(json_path="resume_data.json",
     y = new_page_if_needed(y)
     c.setFont(font_bold, font_section_title)
     c.drawString(left, y, "SKILLS SNAPSHOT")
-    y -= (14 * font_scale + MIN_LINE_GAP)
+    y -= 14 * font_scale + MIN_LINE_GAP
 
     label_w = 5.5 * cm
     gap = 0.4 * cm
     value_x = left + label_w + gap
     value_w = content_w - label_w - gap
 
-    for item in (data.get("skills_snapshot") or []):
+    for item in data.get("skills_snapshot") or []:
         y = new_page_if_needed(y)
         label = item.get("label", "")
         value = item.get("value", "")
@@ -156,7 +164,9 @@ def create_resume_pdf(json_path="resume_data.json",
         c.drawString(left, y, label)
 
         c.setFont(font_regular, font_skills_value)
-        value_lines = wrap_lines(value, value_w, font=font_regular, size=font_skills_value)
+        value_lines = wrap_lines(
+            value, value_w, font=font_regular, size=font_skills_value
+        )
         for vline in value_lines:
             c.drawString(value_x, y, vline)
             y -= spacing_skills_line
@@ -170,7 +180,7 @@ def create_resume_pdf(json_path="resume_data.json",
     y = new_page_if_needed(y)
     c.setFont(font_bold, font_section_title)
     c.drawString(left, y, "EXPERIENCE")
-    y -= (14 * font_scale + MIN_LINE_GAP)
+    y -= 14 * font_scale + MIN_LINE_GAP
 
     def exp_block(company, role_line, bullets):
         nonlocal y
@@ -188,7 +198,9 @@ def create_resume_pdf(json_path="resume_data.json",
 
         c.setFont(font_regular, font_bullet)
         for bullet in bullets:
-            bullet_lines = wrap_lines(bullet, content_w - 10, font=font_regular, size=font_bullet)
+            bullet_lines = wrap_lines(
+                bullet, content_w - 10, font=font_regular, size=font_bullet
+            )
             for i, bline in enumerate(bullet_lines):
                 if i == 0:
                     c.drawString(left, y, "•")
@@ -199,33 +211,31 @@ def create_resume_pdf(json_path="resume_data.json",
 
         y -= spacing_after_exp_block
 
-    for exp in (data.get("experience") or []):
+    for exp in data.get("experience") or []:
         exp_block(
-            exp.get("company", ""),
-            exp.get("role_line", ""),
-            exp.get("bullets", [])
+            exp.get("company", ""), exp.get("role_line", ""), exp.get("bullets", [])
         )
 
     # Education
     y = new_page_if_needed(y)
     c.setFont(font_bold, font_section_title)
     c.drawString(left, y, "EDUCATION")
-    y -= (14 * font_scale + MIN_LINE_GAP)
+    y -= 14 * font_scale + MIN_LINE_GAP
 
     edu_items = data.get("education", []) or []
-    
+
     c.setFont(font_regular, font_education)
     for edu in edu_items:
         y = new_page_if_needed(y)
-        
+
         degree = edu.get("degree", "")
         details = edu.get("details", "")
-        
+
         # Degree on first line
         c.setFont(font_bold, font_education)
         c.drawString(left, y, degree)
         y -= spacing_edu_line
-        
+
         # Details on second line
         c.setFont(font_regular, font_education)
         c.drawString(left, y, details)
@@ -237,7 +247,7 @@ def create_resume_pdf(json_path="resume_data.json",
         y = new_page_if_needed(y)
         c.setFont(font_bold, font_section_title)
         c.drawString(left, y, "PROJECTS")
-        y -= (14 * font_scale + MIN_LINE_GAP)
+        y -= 14 * font_scale + MIN_LINE_GAP
 
         for proj in projects:
             y = new_page_if_needed(y)
@@ -249,7 +259,9 @@ def create_resume_pdf(json_path="resume_data.json",
             y -= spacing_bullet_line
 
             c.setFont(font_regular, font_bullet)
-            detail_lines = wrap_lines(details, content_w - 10, font=font_regular, size=font_bullet)
+            detail_lines = wrap_lines(
+                details, content_w - 10, font=font_regular, size=font_bullet
+            )
             for i, dline in enumerate(detail_lines):
                 if i == 0:
                     c.drawString(left, y, "-")
@@ -265,11 +277,13 @@ def create_resume_pdf(json_path="resume_data.json",
         y = new_page_if_needed(y)
         c.setFont(font_bold, font_section_title)
         c.drawString(left, y, "CERTIFICATIONS")
-        y -= (14 * font_scale + MIN_LINE_GAP)
+        y -= 14 * font_scale + MIN_LINE_GAP
 
         c.setFont(font_regular, font_certification)
         for cert in certs:
-            cert_lines = wrap_lines(cert, content_w - 10, font=font_regular, size=font_certification)
+            cert_lines = wrap_lines(
+                cert, content_w - 10, font=font_regular, size=font_certification
+            )
             for i, cline in enumerate(cert_lines):
                 if i == 0:
                     c.drawString(left, y, "•")
@@ -286,20 +300,72 @@ def create_resume_pdf(json_path="resume_data.json",
         y = new_page_if_needed(y)
         c.setFont(font_bold, font_section_title)
         c.drawString(left, y, "ADDITIONAL INFORMATION")
-        y -= (14 * font_scale + MIN_LINE_GAP)
+        y -= 14 * font_scale + MIN_LINE_GAP
 
         c.setFont(font_regular, font_certification)
         for key, value in additional_info.items():
             label = str(key).replace("_", " ").title()
-            line = f"{label}: {value}"
-            info_lines = wrap_lines(line, content_w - 10, font=font_regular, size=font_certification)
-            for i, iline in enumerate(info_lines):
-                if i == 0:
-                    c.drawString(left, y, "•")
-                    c.drawString(left + 10, y, iline)
-                else:
-                    c.drawString(left + 10, y, iline)
-                y -= spacing_cert_line
+
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict):
+                        item_name = item.get("name", "")
+                        item_desc = item.get("description", "")
+
+                        if item_name:
+                            line = f"{item_name}"
+                            info_lines = wrap_lines(
+                                line,
+                                content_w - 10,
+                                font=font_regular,
+                                size=font_certification,
+                            )
+                            for i, iline in enumerate(info_lines):
+                                if i == 0:
+                                    c.drawString(left, y, "•")
+                                    c.drawString(left + 10, y, iline)
+                                else:
+                                    c.drawString(left + 10, y, iline)
+                                y -= spacing_cert_line
+
+                        if item_desc:
+                            desc_line = f"  {item_desc}"
+                            desc_lines = wrap_lines(
+                                desc_line,
+                                content_w - 20,
+                                font=font_regular,
+                                size=font_certification,
+                            )
+                            for dline in desc_lines:
+                                c.drawString(left + 10, y, dline)
+                                y -= spacing_cert_line
+                    else:
+                        line = str(item)
+                        info_lines = wrap_lines(
+                            line,
+                            content_w - 10,
+                            font=font_regular,
+                            size=font_certification,
+                        )
+                        for i, iline in enumerate(info_lines):
+                            if i == 0:
+                                c.drawString(left, y, "•")
+                                c.drawString(left + 10, y, iline)
+                            else:
+                                c.drawString(left + 10, y, iline)
+                            y -= spacing_cert_line
+            else:
+                line = f"{label}: {value}"
+                info_lines = wrap_lines(
+                    line, content_w - 10, font=font_regular, size=font_certification
+                )
+                for i, iline in enumerate(info_lines):
+                    if i == 0:
+                        c.drawString(left, y, "•")
+                        c.drawString(left + 10, y, iline)
+                    else:
+                        c.drawString(left + 10, y, iline)
+                    y -= spacing_cert_line
 
         y = draw_divider(c, left, left + content_w, y)
 
@@ -309,8 +375,8 @@ def create_resume_pdf(json_path="resume_data.json",
         y = new_page_if_needed(y)
         c.setFont(font_bold, font_section_title)
         c.drawString(left, y - 2, "REFERENCE")
-        y -= (14 * font_scale + MIN_LINE_GAP)
-        
+        y -= 14 * font_scale + MIN_LINE_GAP
+
         for r in refs:
             y = new_page_if_needed(y)
             c.setFont(font_regular, font_reference)
@@ -327,12 +393,14 @@ def create_resume_pdf(json_path="resume_data.json",
         print(f"❌ WARNING: File not found after save: {output_path}")
 
 
-def create_cover_letter_pdf(json_path="resume_data.json",
-                            output_path="Cover_Letter.pdf",
-                            font_scale=1.0,
-                            font_family="Helvetica"):
+def create_cover_letter_pdf(
+    json_path="resume_data.json",
+    output_path="Cover_Letter.pdf",
+    font_scale=1.0,
+    font_family="Helvetica",
+):
     """Generate cover letter PDF from JSON data with customizable fonts.
-    
+
     Args:
         json_path: Path to JSON file
         output_path: Output PDF path
@@ -423,7 +491,9 @@ def create_cover_letter_pdf(json_path="resume_data.json",
         c.drawString(left, y, company)
         y -= 12 * font_scale
     if company_address:
-        addr_lines = wrap_lines(company_address, content_w, font=font_regular, size=10 * font_scale)
+        addr_lines = wrap_lines(
+            company_address, content_w, font=font_regular, size=10 * font_scale
+        )
         for addr_line in addr_lines:
             c.drawString(left, y, addr_line)
             y -= 12 * font_scale
@@ -440,7 +510,9 @@ def create_cover_letter_pdf(json_path="resume_data.json",
 
     if subject:
         c.setFont(font_bold, 10.5 * font_scale)
-        subj_lines = wrap_lines(subject, content_w, font=font_bold, size=10.5 * font_scale)
+        subj_lines = wrap_lines(
+            subject, content_w, font=font_bold, size=10.5 * font_scale
+        )
         for sline in subj_lines:
             c.drawString(left, y, sline)
             y -= 13 * font_scale
@@ -455,8 +527,8 @@ def create_cover_letter_pdf(json_path="resume_data.json",
         # Extract just the salutation line (up to first comma or newline)
         first_comma = opening_raw.find(",")
         if first_comma != -1 and first_comma < 60:
-            greeting = opening_raw[:first_comma + 1]          # "Dear Hiring Manager,"
-            remainder = opening_raw[first_comma + 1:].strip() # rest becomes body
+            greeting = opening_raw[: first_comma + 1]  # "Dear Hiring Manager,"
+            remainder = opening_raw[first_comma + 1 :].strip()  # rest becomes body
         else:
             greeting = f"Dear {recipient or 'Hiring Manager'},"
             remainder = opening_raw
@@ -475,7 +547,9 @@ def create_cover_letter_pdf(json_path="resume_data.json",
     body_points = cl.get("body_points", [])
 
     if opening_for_body:
-        open_lines = wrap_lines(opening_for_body, content_w, font=font_regular, size=10.5 * font_scale)
+        open_lines = wrap_lines(
+            opening_for_body, content_w, font=font_regular, size=10.5 * font_scale
+        )
         for oline in open_lines:
             c.drawString(left, y, oline)
             y -= 14 * font_scale
@@ -522,19 +596,26 @@ def create_cover_letter_pdf(json_path="resume_data.json",
     # Calculate word count for body only (excluding header/footer)
     body_text = " ".join([str(p) for p in body_points])
     body_word_count = wc_count(body_text)
-    
+
     # Calculate total word count (everything)
-    wc_text = " ".join([
-        str(date_val),
-        recipient, company, company_address,
-        subject, greeting,
-        opening_for_body,
-        " ".join([str(p) for p in body_points]),
-        closing,
-        signature_name, phone_number, email
-    ])
+    wc_text = " ".join(
+        [
+            str(date_val),
+            recipient,
+            company,
+            company_address,
+            subject,
+            greeting,
+            opening_for_body,
+            " ".join([str(p) for p in body_points]),
+            closing,
+            signature_name,
+            phone_number,
+            email,
+        ]
+    )
     total_word_count = wc_count(wc_text)
-    
+
     cl["word_count"] = total_word_count
     cl["body_word_count"] = body_word_count
     data["cover_letter"] = cl
@@ -545,7 +626,9 @@ def create_cover_letter_pdf(json_path="resume_data.json",
             raw_data["resume_json"] = data
         else:
             raw_data = data
-        Path(json_path).write_text(json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        Path(json_path).write_text(
+            json.dumps(raw_data, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
     except Exception:
         pass
 
@@ -553,7 +636,9 @@ def create_cover_letter_pdf(json_path="resume_data.json",
     print(f"✅ Created cover letter: {output_path}")
 
 
-def create_resume_pdf_bytes(data: dict, font_scale: float = 1.0, font_family: str = "Helvetica") -> bytes:
+def create_resume_pdf_bytes(
+    data: dict, font_scale: float = 1.0, font_family: str = "Helvetica"
+) -> bytes:
     """Generate resume PDF from a dict, return raw PDF bytes (no file I/O)."""
     buf = io.BytesIO()
     # Temporarily write to a temp path using BytesIO-backed canvas
@@ -562,20 +647,30 @@ def create_resume_pdf_bytes(data: dict, font_scale: float = 1.0, font_family: st
     return c_buf.getvalue()
 
 
-def create_cover_letter_pdf_bytes(data: dict, font_scale: float = 1.0, font_family: str = "Helvetica") -> bytes:
+def create_cover_letter_pdf_bytes(
+    data: dict, font_scale: float = 1.0, font_family: str = "Helvetica"
+) -> bytes:
     """Generate cover letter PDF from a dict, return raw PDF bytes (no file I/O)."""
     c_buf = io.BytesIO()
     _generate_cover_letter_to_canvas(data, c_buf, font_scale, font_family)
     return c_buf.getvalue()
 
 
-def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font_family: str = "Helvetica"):
+def _generate_resume_to_canvas(
+    data: dict, output, font_scale: float = 1.0, font_family: str = "Helvetica"
+):
     """Internal: render resume onto a canvas writing to output (path or BytesIO)."""
     from drawing_utils import (
-        PAGE_W, PAGE_H, MIN_LINE_GAP,
-        wrap_lines, draw_boxed_block, draw_wrapped_text,
-        draw_section_title, draw_bullets, draw_divider,
-        draw_page_border
+        PAGE_W,
+        PAGE_H,
+        MIN_LINE_GAP,
+        wrap_lines,
+        draw_boxed_block,
+        draw_wrapped_text,
+        draw_section_title,
+        draw_bullets,
+        draw_divider,
+        draw_page_border,
     )
 
     if font_family == "Times":
@@ -646,11 +741,13 @@ def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font
 
     c.setFont(font_bold, font_section_title)
     c.drawString(left, y, "CAREER OBJECTIVE")
-    y -= (14 * font_scale + MIN_LINE_GAP)
+    y -= 14 * font_scale + MIN_LINE_GAP
 
     objective = data.get("career_objective", "")
     c.setFont(font_regular, font_objective)
-    for oline in wrap_lines(objective, content_w, font=font_regular, size=font_objective):
+    for oline in wrap_lines(
+        objective, content_w, font=font_regular, size=font_objective
+    ):
         c.drawString(left, y, oline)
         y -= 11 * font_scale
     y -= spacing_after_objective
@@ -658,21 +755,23 @@ def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font
     y = new_page_if_needed(y)
     c.setFont(font_bold, font_section_title)
     c.drawString(left, y, "SKILLS SNAPSHOT")
-    y -= (14 * font_scale + MIN_LINE_GAP)
+    y -= 14 * font_scale + MIN_LINE_GAP
 
     label_w = 5.5 * cm
     gap = 0.4 * cm
     value_x = left + label_w + gap
     value_w = content_w - label_w - gap
 
-    for item in (data.get("skills_snapshot") or []):
+    for item in data.get("skills_snapshot") or []:
         y = new_page_if_needed(y)
         label = item.get("label", "")
         value = item.get("value", "")
         c.setFont(font_bold, font_skills_label)
         c.drawString(left, y, label)
         c.setFont(font_regular, font_skills_value)
-        for vline in wrap_lines(value, value_w, font=font_regular, size=font_skills_value):
+        for vline in wrap_lines(
+            value, value_w, font=font_regular, size=font_skills_value
+        ):
             c.drawString(value_x, y, vline)
             y -= spacing_skills_line
     y -= spacing_after_skills_section
@@ -680,7 +779,7 @@ def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font
     y = new_page_if_needed(y)
     c.setFont(font_bold, font_section_title)
     c.drawString(left, y, "EXPERIENCE")
-    y -= (14 * font_scale + MIN_LINE_GAP)
+    y -= 14 * font_scale + MIN_LINE_GAP
 
     def exp_block(company, role_line, bullets):
         nonlocal y
@@ -694,7 +793,9 @@ def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font
             y -= spacing_after_role
         c.setFont(font_regular, font_bullet)
         for bullet in bullets:
-            for i, bline in enumerate(wrap_lines(bullet, content_w - 10, font=font_regular, size=font_bullet)):
+            for i, bline in enumerate(
+                wrap_lines(bullet, content_w - 10, font=font_regular, size=font_bullet)
+            ):
                 if i == 0:
                     c.drawString(left, y, "•")
                     c.drawString(left + 10, y, bline)
@@ -703,15 +804,17 @@ def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font
                 y -= spacing_bullet_line
         y -= spacing_after_exp_block
 
-    for exp in (data.get("experience") or []):
-        exp_block(exp.get("company", ""), exp.get("role_line", ""), exp.get("bullets", []))
+    for exp in data.get("experience") or []:
+        exp_block(
+            exp.get("company", ""), exp.get("role_line", ""), exp.get("bullets", [])
+        )
 
     y = new_page_if_needed(y)
     c.setFont(font_bold, font_section_title)
     c.drawString(left, y, "EDUCATION")
-    y -= (14 * font_scale + MIN_LINE_GAP)
+    y -= 14 * font_scale + MIN_LINE_GAP
 
-    for edu in (data.get("education") or []):
+    for edu in data.get("education") or []:
         y = new_page_if_needed(y)
         c.setFont(font_bold, font_education)
         c.drawString(left, y, edu.get("degree", ""))
@@ -725,14 +828,21 @@ def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font
         y = new_page_if_needed(y)
         c.setFont(font_bold, font_section_title)
         c.drawString(left, y, "PROJECTS")
-        y -= (14 * font_scale + MIN_LINE_GAP)
+        y -= 14 * font_scale + MIN_LINE_GAP
         for proj in projects:
             y = new_page_if_needed(y)
             c.setFont(font_bold, font_bullet + 0.5)
             c.drawString(left, y, proj.get("name", ""))
             y -= spacing_bullet_line
             c.setFont(font_regular, font_bullet)
-            for i, dline in enumerate(wrap_lines(proj.get("details", ""), content_w - 10, font=font_regular, size=font_bullet)):
+            for i, dline in enumerate(
+                wrap_lines(
+                    proj.get("details", ""),
+                    content_w - 10,
+                    font=font_regular,
+                    size=font_bullet,
+                )
+            ):
                 if i == 0:
                     c.drawString(left, y, "-")
                     c.drawString(left + 10, y, dline)
@@ -746,10 +856,14 @@ def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font
         y = new_page_if_needed(y)
         c.setFont(font_bold, font_section_title)
         c.drawString(left, y, "CERTIFICATIONS")
-        y -= (14 * font_scale + MIN_LINE_GAP)
+        y -= 14 * font_scale + MIN_LINE_GAP
         c.setFont(font_regular, font_certification)
         for cert in certs:
-            for i, cline in enumerate(wrap_lines(cert, content_w - 10, font=font_regular, size=font_certification)):
+            for i, cline in enumerate(
+                wrap_lines(
+                    cert, content_w - 10, font=font_regular, size=font_certification
+                )
+            ):
                 if i == 0:
                     c.drawString(left, y, "•")
                     c.drawString(left + 10, y, cline)
@@ -763,11 +877,15 @@ def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font
         y = new_page_if_needed(y)
         c.setFont(font_bold, font_section_title)
         c.drawString(left, y, "ADDITIONAL INFORMATION")
-        y -= (14 * font_scale + MIN_LINE_GAP)
+        y -= 14 * font_scale + MIN_LINE_GAP
         c.setFont(font_regular, font_certification)
         for key, value in additional_info.items():
             line = f"{str(key).replace('_', ' ').title()}: {value}"
-            for i, iline in enumerate(wrap_lines(line, content_w - 10, font=font_regular, size=font_certification)):
+            for i, iline in enumerate(
+                wrap_lines(
+                    line, content_w - 10, font=font_regular, size=font_certification
+                )
+            ):
                 if i == 0:
                     c.drawString(left, y, "•")
                     c.drawString(left + 10, y, iline)
@@ -781,7 +899,7 @@ def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font
         y = new_page_if_needed(y)
         c.setFont(font_bold, font_section_title)
         c.drawString(left, y - 2, "REFERENCE")
-        y -= (14 * font_scale + MIN_LINE_GAP)
+        y -= 14 * font_scale + MIN_LINE_GAP
         c.setFont(font_regular, font_reference)
         for r in refs:
             c.drawString(left, y, r)
@@ -790,7 +908,9 @@ def _generate_resume_to_canvas(data: dict, output, font_scale: float = 1.0, font
     c.save()
 
 
-def _generate_cover_letter_to_canvas(data: dict, output, font_scale: float = 1.0, font_family: str = "Helvetica"):
+def _generate_cover_letter_to_canvas(
+    data: dict, output, font_scale: float = 1.0, font_family: str = "Helvetica"
+):
     """Internal: render cover letter onto a canvas writing to output (path or BytesIO)."""
     from drawing_utils import PAGE_W, PAGE_H, wrap_lines, draw_page_border
 
@@ -857,7 +977,9 @@ def _generate_cover_letter_to_canvas(data: dict, output, font_scale: float = 1.0
         c.drawString(left, y, company)
         y -= 12 * font_scale
     if company_address:
-        for addr_line in wrap_lines(company_address, content_w, font=font_regular, size=10 * font_scale):
+        for addr_line in wrap_lines(
+            company_address, content_w, font=font_regular, size=10 * font_scale
+        ):
             c.drawString(left, y, addr_line)
             y -= 12 * font_scale
         y -= 2
@@ -871,7 +993,9 @@ def _generate_cover_letter_to_canvas(data: dict, output, font_scale: float = 1.0
 
     if subject:
         c.setFont(font_bold, 10.5 * font_scale)
-        for sline in wrap_lines(subject, content_w, font=font_bold, size=10.5 * font_scale):
+        for sline in wrap_lines(
+            subject, content_w, font=font_bold, size=10.5 * font_scale
+        ):
             c.drawString(left, y, sline)
             y -= 13 * font_scale
         y -= 6
@@ -881,8 +1005,8 @@ def _generate_cover_letter_to_canvas(data: dict, output, font_scale: float = 1.0
     if opening_raw.lower().startswith("dear"):
         first_comma = opening_raw.find(",")
         if first_comma != -1 and first_comma < 60:
-            greeting = opening_raw[:first_comma + 1]
-            remainder = opening_raw[first_comma + 1:].strip()
+            greeting = opening_raw[: first_comma + 1]
+            remainder = opening_raw[first_comma + 1 :].strip()
         else:
             greeting = f"Dear {recipient or 'Hiring Manager'},"
             remainder = opening_raw
@@ -898,13 +1022,17 @@ def _generate_cover_letter_to_canvas(data: dict, output, font_scale: float = 1.0
     y = new_page_if_needed(y)
 
     if opening_for_body:
-        for oline in wrap_lines(opening_for_body, content_w, font=font_regular, size=10.5 * font_scale):
+        for oline in wrap_lines(
+            opening_for_body, content_w, font=font_regular, size=10.5 * font_scale
+        ):
             c.drawString(left, y, oline)
             y -= 14 * font_scale
         y -= 8 * font_scale
 
     for p in body_points:
-        for pline in wrap_lines(p, content_w, font=font_regular, size=10.5 * font_scale):
+        for pline in wrap_lines(
+            p, content_w, font=font_regular, size=10.5 * font_scale
+        ):
             c.drawString(left, y, pline)
             y -= 14 * font_scale
         y -= 8 * font_scale

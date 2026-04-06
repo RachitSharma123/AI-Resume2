@@ -1,59 +1,57 @@
 {
   "name": "RACHIT SHARMA",
-  "contact": "Melbourne, VIC | +61 0410 706 812 | sharmarachit923@gmail.com",
+  "contact": "Melbourne, VIC | +61 0410 706 812 | sharmarachit923@gmail.com | github.com/RachitSharma123",
 
-  "career_objective": "Data Analyst with a strong foundation in business analytics, data-driven decision-making, and hands-on experience working with structured datasets across healthcare, education, and enterprise environments. Proven ability to analyse, clean, and transform data to generate actionable insights using SQL, Python, and analytical frameworks. Experienced in working with stakeholders, translating business requirements into data solutions, and supporting reporting and performance analysis. Seeking a Data Analyst role where analytical rigor, business context, and measurable impact are valued.",
+  "career_objective": "Analytics Engineer and automation specialist with a Master of Business Analytics and 5+ years of experience across healthcare, banking, education, and enterprise IT. I build end-to-end data pipelines, AI-powered automation systems, and full-stack applications that turn raw data into business outcomes. Proven track record delivering production-grade Python systems, multi-agent AI platforms, and operational analytics across regulated industries. Seeking a role where technical depth, systems thinking, and real-world impact are valued.",
 
   "skills_snapshot": [
-    { "label": "Data Analysis & Analytics", "value": "Data Cleaning, Data Transformation, Exploratory Data Analysis (EDA), KPI Tracking, Trend Analysis" },
-    { "label": "Programming & Querying", "value": "Python (Pandas, NumPy), SQL (Joins, CTEs, Aggregations), Basic Automation Scripts" },
-    { "label": "Business Intelligence", "value": "Data Reporting, Dashboard Requirements, Metrics Definition, Stakeholder Reporting" },
-    { "label": "Data & Systems", "value": "Relational Databases, Data Validation, Data Quality Checks, ETL Concepts" },
-    { "label": "Business & Domain Knowledge", "value": "Healthcare Operations, Education Systems, Process Analysis, Requirement Gathering" }
+    { "label": "Data Engineering & Analytics", "value": "ETL Pipelines, Data Modelling, SQL (CTEs, Window Functions, Aggregations), Python (Pandas, NumPy), EDA, KPI Frameworks" },
+    { "label": "AI & Automation", "value": "LLM Integration (DeepSeek, OpenAI, Claude), Multi-Agent Systems, Workflow Automation, n8n, Cron Scheduling, API Orchestration" },
+    { "label": "Full-Stack Development", "value": "Python, Next.js, TypeScript, REST APIs, PostgreSQL, SQLite, Prisma ORM, Tailwind CSS, Vercel" },
+    { "label": "Cloud & Infrastructure", "value": "Azure, AWS, Google Cloud APIs (Drive, Sheets, Calendar, Gmail), OAuth 2.0, Linux Server Administration" },
+    { "label": "Business Intelligence", "value": "Power BI, Tableau, Stakeholder Reporting, Requirements Gathering, Process Mapping, JIRA, ServiceNow, Agile/ITIL" }
   ],
 
   "experience": [
     {
       "company": "Healthcare Australia",
-      "role_line": "ICT Data-Focused Analyst | Melbourne, VIC | Nov 2024 – Present",
+      "role_line": "ICT Data Analyst | Melbourne, VIC | Nov 2024 – Present",
       "bullets": [
-        "Analysed incident, request, and operational service data to identify recurring issues, trends, and improvement opportunities within a regulated healthcare environment.",
-        "Extracted and reviewed structured data from ticketing systems to support reporting on SLA performance, resolution times, and service quality metrics.",
-        "Collaborated with technical and non-technical stakeholders to translate operational pain points into data-backed insights and recommendations.",
-        "Maintained high-quality documentation and contributed to standardised reporting inputs to improve data consistency across teams.",
-        "Supported data-driven decision-making by validating data accuracy and ensuring compliance with organisational standards."
+        "Resolve 320+ IT incidents per month while providing 10+ hours of on-call after-hours support, maintaining SLA compliance across a regulated healthcare environment.",
+        "Built automated reporting pipelines tracking SLA performance, resolution times, and service quality metrics — replacing manual spreadsheet processes with real-time dashboards.",
+        "Led root-cause analysis on recurring service issues by mining ticketing system data, identifying patterns that drove measurable reduction in repeat incidents.",
+        "Bridged technical and clinical stakeholders — translated operational pain points into structured data requirements and actionable recommendations.",
+        "Established data validation standards and documentation protocols adopted across the ICT team to improve reporting consistency."
       ]
     },
     {
       "company": "Office Choice Ltd",
-      "role_line": "IT Support Analyst & Reporting Support | Melbourne, VIC | Dec 2023 – Nov 2024",
+      "role_line": "Data & Systems Analyst | Melbourne, VIC | Dec 2023 – Nov 2024",
       "bullets": [
-        "Collected, cleaned, and analysed operational support data to assist with internal reporting and performance tracking.",
-        "Worked with structured datasets related to incidents, assets, and user environments to identify patterns and optimisation opportunities.",
-        "Assisted senior staff with preparing summaries and insights used for management reporting and service reviews.",
-        "Applied SQL-style logic and analytical thinking to troubleshoot data inconsistencies across systems.",
-        "Improved data documentation and process clarity, supporting more reliable reporting outputs."
+        "Owned the end-to-end reporting pipeline across 7 systems and 14 databases — collected, cleaned, and transformed operational data to deliver 3 Power BI board-level reports per week.",
+        "Identified optimisation opportunities through pattern analysis across structured datasets, leading to process improvements in IT service delivery.",
+        "Built SQL-driven data quality checks across 14 interconnected databases, catching cross-system inconsistencies and improving data reliability for downstream reporting.",
+        "Produced analytical summaries and Power BI dashboards for senior leadership and board meetings, directly informing service review decisions and resource allocation."
       ]
     },
     {
       "company": "Melbourne Institute of Technology",
-      "role_line": "System Programmer (Contract) | Melbourne, VIC | Jul 2022 – Oct 2023",
+      "role_line": "Systems Analyst & Programmer (Contract) | Melbourne, VIC | Jul 2022 – Oct 2023",
       "bullets": [
-        "Worked with system and application data to support analysis of operational performance and system usage.",
-        "Assisted in extracting data from internal systems to support reporting, audits, and management insights.",
-        "Applied analytical problem-solving to investigate system issues and identify root causes using data evidence.",
-        "Collaborated with academic and administrative stakeholders to align system data with business requirements.",
-        "Ensured data accuracy and consistency across reports through validation and structured checks."
+        "Extracted and analysed system usage data to identify performance bottlenecks, producing reports that informed infrastructure upgrade decisions.",
+        "Built automated data extraction scripts to replace manual reporting processes, reducing audit preparation time significantly.",
+        "Investigated and resolved system-level issues using data evidence and root-cause analysis across application and database layers.",
+        "Collaborated with academic and administrative stakeholders to align system data models with institutional business requirements."
       ]
     },
     {
-      "company": "Emirates National Bank of Dubai",
-      "role_line": "Junior IT & Data Support Consultant | Dubai | Jan 2021 – Oct 2022",
+      "company": "Emirates NBD (National Bank of Dubai)",
+      "role_line": "IT & Data Analyst | Dubai, UAE | Jan 2021 – Oct 2022",
       "bullets": [
-        "Supported data-related activities within a highly regulated banking environment, focusing on accuracy and compliance.",
-        "Assisted with analysis of application and operational data to support issue resolution and performance monitoring.",
-        "Worked closely with cross-functional teams to interpret business needs and support data-driven investigations.",
-        "Developed strong attention to detail and analytical discipline while working with sensitive enterprise data."
+        "Analysed application and operational data within a Tier-1 banking environment to support incident resolution and performance monitoring under strict compliance requirements.",
+        "Worked across cross-functional teams (IT, operations, compliance) to translate business needs into data investigations and structured reports.",
+        "Handled sensitive enterprise data with rigorous accuracy standards in a highly regulated financial services environment.",
+        "Developed analytical frameworks for recurring performance assessments, reducing investigation turnaround time for the support team."
       ]
     }
   ],
@@ -70,22 +68,45 @@
   ],
 
   "certifications": [
-    "AWS Concepts – Udemy",
-    "Python Programming – Udemy",
-    "Data Analysis with Python (Pandas & NumPy)",
-    "SQL Fundamentals (Oracle 11g)",
-    "Blockchain Fundamentals – Udemy"
+    "AWS Cloud Concepts",
+    "Python Programming & Automation",
+    "Data Analysis with Python (Pandas, NumPy)",
+    "SQL & Database Fundamentals (Oracle)",
+    "ITIL Foundation Concepts"
   ],
 
   "additional_information": {
     "work_rights": "Full Australian work rights",
     "relocation": "Open to relocation for the right opportunity",
-    "availability": "Full-time",
-    "career_path": "Progression into senior data analyst, analytics consulting, or business intelligence roles"
+    "availability": "Immediate start — full-time",
+    "career_path": "Analytics Engineering, AI/Automation Consulting, Data Platform Engineering"
   },
 
+  "projects": [
+    {
+      "name": "Job Hunter — AI-Powered Job Application Pipeline",
+      "details": "Production system that runs daily: scrapes 50+ jobs from Adzuna, Seek, and Careerjet; uses DeepSeek V3 to generate ATS-optimised resumes, cover letters, interview prep, and fit scores; renders professional PDFs via ReportLab; uploads to Google Drive; logs to Google Sheets; sends batch Telegram notifications with Drive links. Fully automated, zero manual intervention. Stack: Python, DeepSeek API, ReportLab, Google Drive/Sheets API, Telegram Bot API, cron."
+    },
+    {
+      "name": "OpenClaw — Self-Hosted AI Agent Gateway",
+      "details": "Built and deployed a self-hosted AI gateway managing 8+ specialised agents (analytics, automation, career, wellness) across multiple LLM providers (Claude, DeepSeek, ZAI, Moonshot). Includes OAuth token management, skills framework, and Telegram bot integration for real-time agent interaction. Deployed on Linux with systemd, handles routing, failover, and cost optimisation across providers."
+    },
+    {
+      "name": "Life-Control — Multi-Agent Coordination Platform",
+      "details": "Multi-agent AI coordination system running 8 Telegram bots with a shared SQLite data layer, cron-scheduled health checks, and CLI-based agent management. Agents handle finance tracking, wellness reminders, career automation, and productivity workflows. Stack: Python, SQLite, Telegram Bot API, multi-agent orchestration."
+    },
+    {
+      "name": "Stacked Up HQ — AI Influencer Marketing Platform",
+      "details": "Designed and deployed a 5-agent AI operations platform for an influencer marketing agency. Agents handle brand research, creator discovery, quality control, and outreach drafting in an automated pipeline. Built with OpenClaw, Telegram integration, cron-based dispatch, and a live dashboard. Client acquired 5 new clients directly through the system. Stack: Python, Node.js, OpenClaw, Telegram API, multi-agent orchestration."
+    },
+    {
+      "name": "ClientOnboard — Full-Stack Onboarding Platform",
+      "details": "Production-grade client onboarding platform with role-based access control, real-time data sync, and admin dashboard. Built with Next.js, TypeScript, Tailwind CSS, Prisma ORM, NextAuth.js, and TanStack Query. Deployed on Vercel with PostgreSQL backend. Delivered for an actual business to streamline their client intake process."
+    }
+  ],
+
   "references": [
-    "References available upon request. Willing to relocate."
+    "References and project demos available upon request."
   ],
 
   "cover_letter": {
@@ -94,12 +115,12 @@
     "company": "",
     "role_title": "",
     "company_address": "",
-    "subject": "Application for Data Analyst – Rachit Sharma",
+    "subject": "Application – Rachit Sharma",
     "opening": "Dear Hiring Manager,",
     "body_points": [
-      "Data analyst with a strong foundation in business analytics, data interpretation, and stakeholder-focused insights, supported by a Master of Business Analytics.",
-      "Hands-on experience analysing operational and system data using Python and SQL to identify trends, improve performance metrics, and support decision-making.",
-      "Strong interest in applying analytical skills to real-world business problems while continuously improving technical and domain expertise."
+      "Analytics Engineer with a Master of Business Analytics and 5+ years building data pipelines, AI automation systems, and full-stack applications across healthcare, banking, and enterprise environments.",
+      "Track record of delivering production-grade Python systems — from automated job application pipelines processing 50+ listings daily, to multi-agent AI platforms managing 8 specialised bots, to full-stack onboarding platforms deployed for real businesses.",
+      "Combine deep technical capability (Python, SQL, Next.js, LLM APIs, cloud infrastructure) with strong business acumen — I don't just analyse data, I build the systems that generate, process, and deliver insights at scale."
     ],
     "closing": "Kind regards,",
     "signature_name": "Rachit Sharma",

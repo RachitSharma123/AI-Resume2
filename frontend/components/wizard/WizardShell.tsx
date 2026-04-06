@@ -19,11 +19,11 @@ type ATSResult = {
 };
 
 const STEPS = [
-  { n: 1, label: "Upload" },
-  { n: 2, label: "Review" },
-  { n: 3, label: "Job Description" },
-  { n: 4, label: "Generate" },
-  { n: 5, label: "Download" },
+  { n: 1, label: "Your Resume" },
+  { n: 2, label: "Looks Good?" },
+  { n: 3, label: "Target Role" },
+  { n: 4, label: "AI Magic" },
+  { n: 5, label: "You're Ready!" },
 ];
 
 export default function WizardShell() {
@@ -62,18 +62,29 @@ export default function WizardShell() {
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       {/* Top bar */}
       <header style={{
-        background: "var(--bg2)",
+        background: "linear-gradient(135deg, #fff8ee 0%, #fffdf9 100%)",
         borderBottom: "1px solid var(--border)",
         padding: "0 2rem",
         position: "sticky",
         top: 0,
         zIndex: 10,
+        boxShadow: "0 1px 8px rgba(180,90,0,0.07)",
       }}>
-        <div style={{ maxWidth: 860, margin: "0 auto", display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.9rem 0" }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)", letterSpacing: "0.1em", marginRight: "1.5rem" }}>
-            AI RESUME
-          </span>
-          <div style={{ display: "flex", gap: "0.25rem", flex: 1 }}>
+        <div style={{ maxWidth: 860, margin: "0 auto", display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.85rem 0" }}>
+          <button
+            onClick={handleStartOver}
+            title="Start a new session"
+            className="wizard-logo"
+            style={{ marginRight: "1.5rem", flexShrink: 0, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
+          >
+            <div style={{ fontSize: "0.95rem", fontWeight: 800, color: "var(--accent2)", letterSpacing: "-0.01em", lineHeight: 1.1, whiteSpace: "nowrap" }}>
+              ✨ Resume Builder
+            </div>
+            <div className="logo-sub" style={{ fontSize: "0.65rem", color: "var(--muted)", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              Free · Powered by AI
+            </div>
+          </button>
+          <div className="wizard-header-steps" style={{ display: "flex", gap: "0.25rem", flex: 1, minWidth: 0 }}>
             {STEPS.map(s => {
               const done = step > s.n;
               const active = step === s.n;
@@ -84,17 +95,24 @@ export default function WizardShell() {
                   style={{
                     flex: 1,
                     padding: "0.35rem 0.25rem",
-                    fontSize: "0.75rem",
+                    fontSize: "0.72rem",
+                    fontWeight: active ? 700 : 500,
                     background: "none",
                     border: "none",
-                    borderBottom: active ? "2px solid var(--accent)" : done ? "2px solid var(--green)" : "2px solid var(--border)",
-                    color: active ? "var(--accent)" : done ? "var(--green)" : "var(--muted)",
+                    borderBottom: active ? "2.5px solid var(--accent)" : done ? "2.5px solid var(--green)" : "2.5px solid var(--border)",
+                    color: active ? "var(--accent2)" : done ? "var(--green)" : "var(--muted)",
                     cursor: done ? "pointer" : "default",
                     transition: "all 0.15s",
-                    fontFamily: "var(--font-mono)",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
                   }}
                 >
-                  {done ? "✓ " : `${s.n}. `}{s.label}
+                  <span className="step-dot" style={{ display: "none" }}>
+                    {done ? "✓" : active ? "●" : "○"}
+                  </span>
+                  <span className="step-label">
+                    {done ? "✓ " : ""}{s.label}
+                  </span>
                 </button>
               );
             })}
@@ -114,7 +132,7 @@ export default function WizardShell() {
           justifyContent: "center",
           fontSize: "0.88rem",
         }}>
-          <span style={{ color: "var(--muted)" }}>You have a saved resume from a previous session.</span>
+          <span style={{ color: "var(--muted)" }}>Welcome back! You have a resume saved from last time.</span>
           <button
             className="btn btn-primary"
             style={{ padding: "0.3rem 0.85rem", fontSize: "0.82rem" }}
@@ -133,7 +151,7 @@ export default function WizardShell() {
       )}
 
       {/* Content */}
-      <main style={{ maxWidth: 860, margin: "0 auto", padding: "2rem" }}>
+      <main style={{ maxWidth: 860, margin: "0 auto", padding: "2rem", paddingBottom: "5rem" }}>
         {step === 1 && (
           <StepUpload
             onComplete={data => { handleResumeChange(data); setStep(2); }}
@@ -177,6 +195,40 @@ export default function WizardShell() {
           />
         )}
       </main>
+      {/* Footer */}
+      <div style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 20,
+        textAlign: "center",
+        padding: "10px 1rem 12px",
+        background: "linear-gradient(to top, var(--bg2) 80%, transparent)",
+        pointerEvents: "none",
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--accent2)", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 5 }}>
+          Crafted by Rachit Sharma
+        </div>
+        <div style={{ fontSize: 11, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
+          {[
+            { label: "GitHub", url: "https://github.com/RachitSharma123" },
+            { label: "LinkedIn", url: "https://www.linkedin.com/in/rachit-sharma-0b9b44117/" },
+            { label: "Instagram", url: "https://www.instagram.com/rachitsharma_a/" },
+            { label: "mode3.au", url: "https://mode3.au" },
+            { label: "aussieai.shop", url: "https://www.aussieai.shop" },
+            { label: "rachitsharma.space", url: "https://www.rachitsharma.space" },
+            { label: "rsharma.cv", url: "https://www.rsharma.cv" },
+          ].map((link, i, arr) => (
+            <span key={link.url} style={{ display: "flex", alignItems: "center", gap: 12, pointerEvents: "auto" }}>
+              <a href={link.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent2)", textDecoration: "none", fontWeight: 600 }}>
+                {link.label}
+              </a>
+              {i < arr.length - 1 && <span style={{ color: "var(--border)" }}>·</span>}
+            </span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

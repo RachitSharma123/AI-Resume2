@@ -8,8 +8,13 @@ from openai import OpenAI
 import requests
 
 
-
 PROVIDER_DEFAULTS = {
+    "deepseek": {
+        "label": "DeepSeek",
+        "base_url": "https://api.deepseek.com/v1",
+        "key_names": ["DEEPSEEK_API_KEY", "AI_API_KEY"],
+        "default_model": "deepseek-chat",
+    },
     "openai": {
         "label": "OpenAI",
         "base_url": "https://api.openai.com/v1",
@@ -20,7 +25,7 @@ PROVIDER_DEFAULTS = {
         "label": "OpenRouter",
         "base_url": "https://openrouter.ai/api/v1",
         "key_names": ["OPENROUTER_API_KEY", "AI_API_KEY"],
-        "default_model": "openai/gpt-4o-mini",
+        "default_model": "google/gemini-2.0-flash-exp:free",
     },
     "grok": {
         "label": "Grok / xAI",
@@ -60,15 +65,15 @@ def _parse_ai_json(text: str) -> dict:
     cleaned = text.strip()
 
     # Remove markdown code blocks
-    cleaned = re.sub(r'^```json\s*', '', cleaned, flags=re.MULTILINE)
-    cleaned = re.sub(r'^```\s*', '', cleaned, flags=re.MULTILINE)
-    cleaned = re.sub(r'\s*```$', '', cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"^```json\s*", "", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"^```\s*", "", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE)
 
     # Try to find the JSON object with balanced braces
     # This is more robust for large JSON responses
     try:
         # Find the first opening brace
-        start_idx = cleaned.find('{')
+        start_idx = cleaned.find("{")
         if start_idx == -1:
             raise ValueError("No JSON object found in response")
 
@@ -77,9 +82,9 @@ def _parse_ai_json(text: str) -> dict:
         end_idx = -1
 
         for i in range(start_idx, len(cleaned)):
-            if cleaned[i] == '{':
+            if cleaned[i] == "{":
                 brace_count += 1
-            elif cleaned[i] == '}':
+            elif cleaned[i] == "}":
                 brace_count -= 1
                 if brace_count == 0:
                     end_idx = i + 1
@@ -92,14 +97,14 @@ def _parse_ai_json(text: str) -> dict:
 
     except Exception:
         # Fallback to regex method
-        m = re.search(r'\{.*\}', cleaned, flags=re.DOTALL)
+        m = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
         if m:
             json_str = m.group(0)
         else:
             raise ValueError("Could not extract JSON from response")
 
     # Clean up smart quotes
-    json_str = json_str.replace(""", "\"").replace(""", "\"").replace("'", "'")
+    json_str = json_str.replace(""", "\"").replace(""", '"').replace("'", "'")
 
     try:
         return json.loads(json_str)
@@ -145,17 +150,23 @@ def _resolve_provider_config(runtime_overrides: dict | None = None) -> dict:
         runtime_cfg = {**runtime_cfg, **runtime_overrides}
 
     provider = _normalize_provider(
-        runtime_cfg.get("provider") or _get_secret_or_env("AI_PROVIDER") or "openai"
+        runtime_cfg.get("provider") or _get_secret_or_env("AI_PROVIDER") or "openrouter"
     )
 
-    defaults = PROVIDER_DEFAULTS.get(provider, {
-        "label": "Custom OpenAI-Compatible",
-        "base_url": _get_secret_or_env("AI_BASE_URL") or "https://api.openai.com/v1",
-        "key_names": ["AI_API_KEY"],
-        "default_model": "gpt-4o-mini",
-    })
+    defaults = PROVIDER_DEFAULTS.get(
+        provider,
+        {
+            "label": "Custom OpenAI-Compatible",
+            "base_url": _get_secret_or_env("AI_BASE_URL")
+            or "https://api.openai.com/v1",
+            "key_names": ["AI_API_KEY"],
+            "default_model": "gpt-4o-mini",
+        },
+    )
 
-    api_key = (runtime_cfg.get("api_key") or "").strip() or _get_secret_or_env(*defaults["key_names"])
+    api_key = (runtime_cfg.get("api_key") or "").strip() or _get_secret_or_env(
+        *defaults["key_names"]
+    )
     if not api_key:
         raise ValueError(
             f"No API key configured for provider '{provider}'. "
@@ -188,7 +199,12 @@ def get_ai_client(runtime_overrides: dict | None = None) -> OpenAI:
     return OpenAI(api_key=cfg["api_key"], base_url=cfg["base_url"])
 
 
-def _chat_completion(system_prompt: str, user_prompt: str, model: str | None = None, temperature: float = 0.7) -> str:
+def _chat_completion(
+    system_prompt: str,
+    user_prompt: str,
+    model: str | None = None,
+    temperature: float = 0.7,
+) -> str:
     cfg = _resolve_provider_config()
     chosen_model = model or cfg["default_model"]
     client = get_ai_client()
@@ -239,13 +255,17 @@ def list_models(
             if isinstance(item, dict) and item.get("id"):
                 models.append(item["id"])
 
-    normalized = sorted({model for model in models if isinstance(model, str) and model.strip()})
+    normalized = sorted(
+        {model for model in models if isinstance(model, str) and model.strip()}
+    )
     if not normalized:
         raise ValueError(f"No models returned by provider '{cfg['provider']}'.")
     return normalized
 
 
-def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: str | None = None) -> dict:
+def call_ai_tailor_resume(
+    base_resume_json: dict, job_description: str, model: str | None = None
+) -> dict:
     """Tailor resume to match job description with ATS optimization."""
     system_prompt = (
         "You are an elite ATS-optimization and hiring strategist.\n"
@@ -283,13 +303,17 @@ def call_ai_tailor_resume(base_resume_json: dict, job_description: str, model: s
     )
 
     try:
-        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.7)
+        text = _chat_completion(
+            system_prompt, user_prompt, model=model, temperature=0.7
+        )
         return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"AI Tailor failed: {str(e)}")
 
 
-def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model: str | None = None) -> dict:
+def call_ai_generate_cover_letter(
+    resume_json: dict, job_description: str, model: str | None = None
+) -> dict:
     """Generate a cover_letter object from resume and job description."""
     system_prompt = (
         "You are a professional career coach helping someone write an authentic, human cover letter.\n\n"
@@ -319,24 +343,24 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
         "✅ GOOD: 'I've spent the past two years learning how Python and SQL can solve real business problems, not just create reports'\n\n"
         "Structure to return:\n"
         "{\n"
-        "  \"date\": \"AUTO\",\n"
-        "  \"recipient\": \"Hiring Manager\",\n"
-        "  \"company\": \"[extract from JD or leave blank]\",\n"
-        "  \"role_title\": \"[extract from JD]\",\n"
-        "  \"company_address\": \"\",\n"
-        "  \"subject\": \"Re: Application for [Role Title]\",\n"
-        "  \"opening\": \"Dear Hiring Manager,\",\n"
-        "  \"body_points\": [\n"
-        "    \"Opening paragraph: 100-130 words\",\n"
-        "    \"Experience paragraph: 100-130 words\",\n"
-        "    \"Achievement paragraph: 100-130 words\",\n"
-        "    \"Company fit paragraph: 100-130 words\",\n"
-        "    \"Closing paragraph: 80-100 words\"\n"
+        '  "date": "AUTO",\n'
+        '  "recipient": "Hiring Manager",\n'
+        '  "company": "[extract from JD or leave blank]",\n'
+        '  "role_title": "[extract from JD]",\n'
+        '  "company_address": "",\n'
+        '  "subject": "Re: Application for [Role Title]",\n'
+        '  "opening": "Dear Hiring Manager,",\n'
+        '  "body_points": [\n'
+        '    "Opening paragraph: 100-130 words",\n'
+        '    "Experience paragraph: 100-130 words",\n'
+        '    "Achievement paragraph: 100-130 words",\n'
+        '    "Company fit paragraph: 100-130 words",\n'
+        '    "Closing paragraph: 80-100 words"\n'
         "  ],\n"
-        "  \"closing\": \"Best regards,\",\n"
-        "  \"signature_name\": \"[from resume name]\",\n"
-        "  \"phone_number\": \"[from resume contact]\",\n"
-        "  \"email\": \"[from resume contact]\"\n"
+        '  "closing": "Best regards,",\n'
+        '  "signature_name": "[from resume name]",\n'
+        '  "phone_number": "[from resume contact]",\n'
+        '  "email": "[from resume contact]"\n'
         "}\n\n"
         "IMPORTANT: Each paragraph in body_points should read naturally, like sentences in an email.\n"
         "Aim for 500-600 total words in the body_points combined.\n"
@@ -352,7 +376,9 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
     )
 
     try:
-        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.8)
+        text = _chat_completion(
+            system_prompt, user_prompt, model=model, temperature=0.8
+        )
         result = _parse_ai_json(text)
 
         # Normalize possible response shapes into a plain cover_letter object.
@@ -382,7 +408,9 @@ def call_ai_generate_cover_letter(resume_json: dict, job_description: str, model
         raise Exception(f"Cover letter generation failed: {str(e)}")
 
 
-def call_ai_ats_score(resume_json: dict, job_description: str, model: str | None = None) -> dict:
+def call_ai_ats_score(
+    resume_json: dict, job_description: str, model: str | None = None
+) -> dict:
     """Analyze resume against job description and provide ATS score."""
     system_prompt = (
         "You are an ATS (Applicant Tracking System) analyzer with deep reasoning capabilities.\n"
@@ -412,7 +440,9 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str | None
     )
 
     try:
-        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.3)
+        text = _chat_completion(
+            system_prompt, user_prompt, model=model, temperature=0.3
+        )
         result = _parse_ai_json(text)
 
         # Validate structure
@@ -447,7 +477,9 @@ def call_ai_ats_score(resume_json: dict, job_description: str, model: str | None
         raise Exception(f"ATS analysis failed: {str(e)}")
 
 
-def call_ai_improve_bullets(experience_bullets: list, job_description: str, model: str | None = None) -> list:
+def call_ai_improve_bullets(
+    experience_bullets: list, job_description: str, model: str | None = None
+) -> list:
     """Improve bullet points with STAR method and metrics."""
     system_prompt = (
         "You are an expert resume writer specializing in impactful bullet points.\n"
@@ -470,14 +502,16 @@ def call_ai_improve_bullets(experience_bullets: list, job_description: str, mode
     )
 
     try:
-        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.7)
+        text = _chat_completion(
+            system_prompt, user_prompt, model=model, temperature=0.7
+        )
 
         # Remove markdown
-        text = re.sub(r'^```json\s*', '', text)
-        text = re.sub(r'\s*```$', '', text)
+        text = re.sub(r"^```json\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
 
         # Extract array
-        m = re.search(r'\[.*\]', text, flags=re.DOTALL)
+        m = re.search(r"\[.*\]", text, flags=re.DOTALL)
         if m:
             text = m.group(0)
 
@@ -504,13 +538,17 @@ def call_ai_extract_keywords(job_description: str, model: str | None = None) -> 
     )
 
     try:
-        text = _chat_completion(system_prompt, job_description, model=model, temperature=0.3)
+        text = _chat_completion(
+            system_prompt, job_description, model=model, temperature=0.3
+        )
         return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"Keyword extraction failed: {str(e)}")
 
 
-def call_ai_rewrite_objective(current_objective: str, job_description: str, model: str | None = None) -> str:
+def call_ai_rewrite_objective(
+    current_objective: str, job_description: str, model: str | None = None
+) -> str:
     """Rewrite career objective for specific role."""
     system_prompt = (
         "Rewrite the career objective to be highly targeted to the job description.\n"
@@ -523,10 +561,14 @@ def call_ai_rewrite_objective(current_objective: str, job_description: str, mode
         "Return ONLY the rewritten objective text (no JSON, no quotes, no explanations)."
     )
 
-    user_prompt = f"Current objective: {current_objective}\n\nJob description: {job_description}"
+    user_prompt = (
+        f"Current objective: {current_objective}\n\nJob description: {job_description}"
+    )
 
     try:
-        return _chat_completion(system_prompt, user_prompt, model=model, temperature=0.7)
+        return _chat_completion(
+            system_prompt, user_prompt, model=model, temperature=0.7
+        )
     except Exception as e:
         raise Exception(f"Objective rewrite failed: {str(e)}")
 
@@ -551,7 +593,9 @@ def call_ai_compress_resume(resume_json: dict, model: str | None = None) -> dict
     user_prompt = json.dumps({"resume_json": resume_json}, ensure_ascii=False)
 
     try:
-        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.5)
+        text = _chat_completion(
+            system_prompt, user_prompt, model=model, temperature=0.5
+        )
         return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"Resume compression failed: {str(e)}")
@@ -569,7 +613,7 @@ def call_ai_extract_resume_from_text(raw_text: str, model: str | None = None) ->
         '  "skills_snapshot": [{"label": "string", "value": "string"}],\n'
         '  "experience": [\n'
         '    {"company": "string", "role_line": "Job Title | Start – End", "bullets": ["string"]}\n'
-        '  ],\n'
+        "  ],\n"
         '  "education": [{"degree": "string", "details": "string"}],\n'
         '  "certifications": ["string"],\n'
         '  "additional_information": {},\n'
@@ -622,7 +666,9 @@ def call_ai_improve_from_ats(
     )
 
     try:
-        text = _chat_completion(system_prompt, user_prompt, model=model, temperature=0.6)
+        text = _chat_completion(
+            system_prompt, user_prompt, model=model, temperature=0.6
+        )
         return _parse_ai_json(text)
     except Exception as e:
         raise Exception(f"ATS-based improvement failed: {str(e)}")

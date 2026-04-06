@@ -40,6 +40,7 @@ app.add_middleware(
 
 # ── Resume extraction ──────────────────────────────────────────────────────────
 
+
 @app.post("/api/extract-resume")
 async def extract_resume(file: UploadFile = File(...)):
     if not (file.filename or "").lower().endswith(".pdf"):
@@ -47,7 +48,9 @@ async def extract_resume(file: UploadFile = File(...)):
 
     contents = await file.read()
     if len(contents) > 10_000_000:
-        raise HTTPException(status_code=413, detail="File too large. Maximum size is 10MB.")
+        raise HTTPException(
+            status_code=413, detail="File too large. Maximum size is 10MB."
+        )
 
     try:
         reader = pypdf.PdfReader(io.BytesIO(contents))
@@ -58,7 +61,7 @@ async def extract_resume(file: UploadFile = File(...)):
     if not raw_text.strip():
         raise HTTPException(
             status_code=422,
-            detail="Could not extract text from this PDF. It may be a scanned image. Please use a text-based PDF or paste your resume text manually."
+            detail="Could not extract text from this PDF. It may be a scanned image. Please use a text-based PDF or paste your resume text manually.",
         )
 
     try:
@@ -70,16 +73,19 @@ async def extract_resume(file: UploadFile = File(...)):
 
 # ── AI endpoints ──────────────────────────────────────────────────────────────
 
+
 class TailorRequest(BaseModel):
     resume: dict
     job_description: str
-    model: str = "gpt-4o-mini"
+    model: str = "google/gemini-2.0-flash-exp:free"
 
 
 @app.post("/api/tailor")
 def tailor_resume(body: TailorRequest):
     try:
-        result = call_ai_tailor_resume(body.resume, body.job_description, model=body.model)
+        result = call_ai_tailor_resume(
+            body.resume, body.job_description, model=body.model
+        )
         return {"resume": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -88,13 +94,15 @@ def tailor_resume(body: TailorRequest):
 class CoverLetterRequest(BaseModel):
     resume: dict
     job_description: str
-    model: str = "gpt-4o-mini"
+    model: str = "google/gemini-2.0-flash-exp:free"
 
 
 @app.post("/api/cover-letter")
 def cover_letter(body: CoverLetterRequest):
     try:
-        result = call_ai_generate_cover_letter(body.resume, body.job_description, model=body.model)
+        result = call_ai_generate_cover_letter(
+            body.resume, body.job_description, model=body.model
+        )
         return {"cover_letter": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -103,7 +111,7 @@ def cover_letter(body: CoverLetterRequest):
 class ATSRequest(BaseModel):
     resume: dict
     job_description: str
-    model: str = "gpt-4o-mini"
+    model: str = "google/gemini-2.0-flash-exp:free"
 
 
 @app.post("/api/ats-score")
@@ -118,13 +126,15 @@ def ats_score(body: ATSRequest):
 class ImproveBulletsRequest(BaseModel):
     bullets: List[str]
     job_description: str
-    model: str = "gpt-4o-mini"
+    model: str = "google/gemini-2.0-flash-exp:free"
 
 
 @app.post("/api/improve-bullets")
 def improve_bullets(body: ImproveBulletsRequest):
     try:
-        result = call_ai_improve_bullets(body.bullets, body.job_description, model=body.model)
+        result = call_ai_improve_bullets(
+            body.bullets, body.job_description, model=body.model
+        )
         return {"bullets": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -132,7 +142,19 @@ def improve_bullets(body: ImproveBulletsRequest):
 
 class CompressRequest(BaseModel):
     resume: dict
-    model: str = "gpt-4o-mini"
+    model: str = "google/gemini-2.0-flash-exp:free"
+
+
+class ImproveFromATSRequest(BaseModel):
+    resume: dict
+    ats_results: dict
+    job_description: str
+    model: str = "google/gemini-2.0-flash-exp:free"
+
+
+class ExtractKeywordsRequest(BaseModel):
+    job_description: str
+    model: str = "google/gemini-2.0-flash-exp:free"
 
 
 @app.post("/api/compress")
@@ -148,13 +170,15 @@ class ImproveFromATSRequest(BaseModel):
     resume: dict
     ats_results: dict
     job_description: str
-    model: str = "gpt-4o-mini"
+    model: str = "deepseek-chat"
 
 
 @app.post("/api/improve-from-ats")
 def improve_from_ats(body: ImproveFromATSRequest):
     try:
-        result = call_ai_improve_from_ats(body.resume, body.ats_results, body.job_description, model=body.model)
+        result = call_ai_improve_from_ats(
+            body.resume, body.ats_results, body.job_description, model=body.model
+        )
         return {"resume": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -162,7 +186,7 @@ def improve_from_ats(body: ImproveFromATSRequest):
 
 class ExtractKeywordsRequest(BaseModel):
     job_description: str
-    model: str = "gpt-4o-mini"
+    model: str = "deepseek-chat"
 
 
 @app.post("/api/extract-keywords")
@@ -176,6 +200,7 @@ def extract_keywords(body: ExtractKeywordsRequest):
 
 # ── PDF endpoints ─────────────────────────────────────────────────────────────
 
+
 class ResumePDFRequest(BaseModel):
     resume: dict
     font_scale: float = 1.0
@@ -185,7 +210,9 @@ class ResumePDFRequest(BaseModel):
 @app.post("/api/pdf/resume")
 def pdf_resume(body: ResumePDFRequest):
     try:
-        pdf_bytes = create_resume_pdf_bytes(body.resume, body.font_scale, body.font_family)
+        pdf_bytes = create_resume_pdf_bytes(
+            body.resume, body.font_scale, body.font_family
+        )
         b64 = base64.b64encode(pdf_bytes).decode()
         return {"pdf_base64": b64, "filename": "resume.pdf"}
     except Exception as e:
@@ -201,7 +228,9 @@ class CoverLetterPDFRequest(BaseModel):
 @app.post("/api/pdf/cover-letter")
 def pdf_cover_letter(body: CoverLetterPDFRequest):
     try:
-        pdf_bytes = create_cover_letter_pdf_bytes(body.resume, body.font_scale, body.font_family)
+        pdf_bytes = create_cover_letter_pdf_bytes(
+            body.resume, body.font_scale, body.font_family
+        )
         b64 = base64.b64encode(pdf_bytes).decode()
         return {"pdf_base64": b64, "filename": "cover_letter.pdf"}
     except Exception as e:
@@ -209,6 +238,7 @@ def pdf_cover_letter(body: CoverLetterPDFRequest):
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/health")
 def health():
