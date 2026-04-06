@@ -150,7 +150,7 @@ def _resolve_provider_config(runtime_overrides: dict | None = None) -> dict:
         runtime_cfg = {**runtime_cfg, **runtime_overrides}
 
     provider = _normalize_provider(
-        runtime_cfg.get("provider") or _get_secret_or_env("AI_PROVIDER") or "openrouter"
+        runtime_cfg.get("provider") or _get_secret_or_env("AI_PROVIDER") or "deepseek"
     )
 
     defaults = PROVIDER_DEFAULTS.get(
