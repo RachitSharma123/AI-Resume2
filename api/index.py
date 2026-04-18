@@ -245,5 +245,15 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/debug")
+def debug():
+    from ai_functions import _resolve_provider_config
+    try:
+        cfg = _resolve_provider_config()
+        return {"provider": cfg["provider"], "key": cfg["api_key"][:12]+"...", "base_url": cfg["base_url"], "model": cfg["default_model"]}
+    except Exception as e:
+        return {"error": str(e), "raw_provider": os.getenv("AI_PROVIDER"), "raw_or_key": (os.getenv("OPENROUTER_API_KEY") or "")[:12]}
+
+
 # Vercel handler
 handler = Mangum(app, lifespan="off")
