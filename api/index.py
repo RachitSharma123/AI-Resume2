@@ -245,5 +245,21 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/debug")
+def debug():
+    import httpx
+    r = {"provider": os.getenv("AI_PROVIDER"), "ds_key": (os.getenv("DEEPSEEK_API_KEY") or "")[:12]}
+    try:
+        resp = httpx.post("https://api.deepseek.com/v1/chat/completions", timeout=15,
+            headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY','')}",
+                     "Content-Type": "application/json"},
+            json={"model":"deepseek-chat","messages":[{"role":"user","content":"hi"}],"max_tokens":3})
+        r["deepseek_status"] = resp.status_code
+        r["deepseek_body"] = resp.text[:100]
+    except Exception as e:
+        r["deepseek_error"] = str(e)
+    return r
+
+
 # Vercel handler
 handler = Mangum(app, lifespan="off")
