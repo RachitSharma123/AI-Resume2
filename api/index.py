@@ -77,7 +77,7 @@ async def extract_resume(file: UploadFile = File(...)):
 class TailorRequest(BaseModel):
     resume: dict
     job_description: str
-    model: str = "google/gemini-2.0-flash-exp:free"
+    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 @app.post("/api/tailor")
@@ -94,7 +94,7 @@ def tailor_resume(body: TailorRequest):
 class CoverLetterRequest(BaseModel):
     resume: dict
     job_description: str
-    model: str = "google/gemini-2.0-flash-exp:free"
+    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 @app.post("/api/cover-letter")
@@ -111,7 +111,7 @@ def cover_letter(body: CoverLetterRequest):
 class ATSRequest(BaseModel):
     resume: dict
     job_description: str
-    model: str = "google/gemini-2.0-flash-exp:free"
+    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 @app.post("/api/ats-score")
@@ -126,7 +126,7 @@ def ats_score(body: ATSRequest):
 class ImproveBulletsRequest(BaseModel):
     bullets: List[str]
     job_description: str
-    model: str = "google/gemini-2.0-flash-exp:free"
+    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 @app.post("/api/improve-bullets")
@@ -142,19 +142,19 @@ def improve_bullets(body: ImproveBulletsRequest):
 
 class CompressRequest(BaseModel):
     resume: dict
-    model: str = "google/gemini-2.0-flash-exp:free"
+    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 class ImproveFromATSRequest(BaseModel):
     resume: dict
     ats_results: dict
     job_description: str
-    model: str = "google/gemini-2.0-flash-exp:free"
+    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 class ExtractKeywordsRequest(BaseModel):
     job_description: str
-    model: str = "google/gemini-2.0-flash-exp:free"
+    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 @app.post("/api/compress")
