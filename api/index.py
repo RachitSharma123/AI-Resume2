@@ -247,18 +247,19 @@ def health():
 
 @app.get("/api/debug")
 def debug():
-    import httpx
+    from ai_functions import _resolve_provider_config
     results = {
         "env_provider": os.getenv("AI_PROVIDER"),
         "openrouter_key_set": bool(os.getenv("OPENROUTER_API_KEY")),
         "deepseek_key_set": bool(os.getenv("DEEPSEEK_API_KEY")),
     }
     try:
-        r = httpx.get("https://openrouter.ai/api/v1/models", timeout=10,
-                      headers={"Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY','')}"})
-        results["openrouter_http_status"] = r.status_code
+        cfg = _resolve_provider_config()
+        results["resolved_provider"] = cfg["provider"]
+        results["resolved_key_prefix"] = cfg["api_key"][:12] + "..." if cfg["api_key"] else "EMPTY"
+        results["resolved_base_url"] = cfg["base_url"]
     except Exception as e:
-        results["openrouter_error"] = str(e)
+        results["config_error"] = str(e)
     return results
 
 
