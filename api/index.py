@@ -245,5 +245,22 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/debug")
+def debug():
+    import httpx
+    results = {
+        "env_provider": os.getenv("AI_PROVIDER"),
+        "openrouter_key_set": bool(os.getenv("OPENROUTER_API_KEY")),
+        "deepseek_key_set": bool(os.getenv("DEEPSEEK_API_KEY")),
+    }
+    try:
+        r = httpx.get("https://openrouter.ai/api/v1/models", timeout=10,
+                      headers={"Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY','')}"})
+        results["openrouter_http_status"] = r.status_code
+    except Exception as e:
+        results["openrouter_error"] = str(e)
+    return results
+
+
 # Vercel handler
 handler = Mangum(app, lifespan="off")
