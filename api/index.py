@@ -77,7 +77,7 @@ async def extract_resume(file: UploadFile = File(...)):
 class TailorRequest(BaseModel):
     resume: dict
     job_description: str
-    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    model: str = "deepseek-chat"
 
 
 @app.post("/api/tailor")
@@ -94,7 +94,7 @@ def tailor_resume(body: TailorRequest):
 class CoverLetterRequest(BaseModel):
     resume: dict
     job_description: str
-    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    model: str = "deepseek-chat"
 
 
 @app.post("/api/cover-letter")
@@ -111,7 +111,7 @@ def cover_letter(body: CoverLetterRequest):
 class ATSRequest(BaseModel):
     resume: dict
     job_description: str
-    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    model: str = "deepseek-chat"
 
 
 @app.post("/api/ats-score")
@@ -126,7 +126,7 @@ def ats_score(body: ATSRequest):
 class ImproveBulletsRequest(BaseModel):
     bullets: List[str]
     job_description: str
-    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    model: str = "deepseek-chat"
 
 
 @app.post("/api/improve-bullets")
@@ -142,19 +142,19 @@ def improve_bullets(body: ImproveBulletsRequest):
 
 class CompressRequest(BaseModel):
     resume: dict
-    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    model: str = "deepseek-chat"
 
 
 class ImproveFromATSRequest(BaseModel):
     resume: dict
     ats_results: dict
     job_description: str
-    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    model: str = "deepseek-chat"
 
 
 class ExtractKeywordsRequest(BaseModel):
     job_description: str
-    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    model: str = "deepseek-chat"
 
 
 @app.post("/api/compress")
@@ -170,7 +170,7 @@ class ImproveFromATSRequest(BaseModel):
     resume: dict
     ats_results: dict
     job_description: str
-    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    model: str = "deepseek-chat"
 
 
 @app.post("/api/improve-from-ats")
@@ -186,7 +186,7 @@ def improve_from_ats(body: ImproveFromATSRequest):
 
 class ExtractKeywordsRequest(BaseModel):
     job_description: str
-    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    model: str = "deepseek-chat"
 
 
 @app.post("/api/extract-keywords")
@@ -243,22 +243,6 @@ def pdf_cover_letter(body: CoverLetterPDFRequest):
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
-
-
-@app.get("/api/debug")
-def debug():
-    import httpx
-    r = {"provider": os.getenv("AI_PROVIDER"), "ds_key": (os.getenv("DEEPSEEK_API_KEY") or "")[:12]}
-    try:
-        resp = httpx.post("https://api.deepseek.com/v1/chat/completions", timeout=15,
-            headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY','')}",
-                     "Content-Type": "application/json"},
-            json={"model":"deepseek-chat","messages":[{"role":"user","content":"hi"}],"max_tokens":3})
-        r["deepseek_status"] = resp.status_code
-        r["deepseek_body"] = resp.text[:100]
-    except Exception as e:
-        r["deepseek_error"] = str(e)
-    return r
 
 
 # Vercel handler

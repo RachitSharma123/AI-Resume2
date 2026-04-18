@@ -25,7 +25,7 @@ PROVIDER_DEFAULTS = {
         "label": "OpenRouter",
         "base_url": "https://openrouter.ai/api/v1",
         "key_names": ["OPENROUTER_API_KEY", "AI_API_KEY"],
-        "default_model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "default_model": "deepseek-chat",
     },
     "grok": {
         "label": "Grok / xAI",
