@@ -170,7 +170,7 @@ class ImproveFromATSRequest(BaseModel):
     resume: dict
     ats_results: dict
     job_description: str
-    model: str = "deepseek-chat"
+    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 @app.post("/api/improve-from-ats")
@@ -186,7 +186,7 @@ def improve_from_ats(body: ImproveFromATSRequest):
 
 class ExtractKeywordsRequest(BaseModel):
     job_description: str
-    model: str = "deepseek-chat"
+    model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 @app.post("/api/extract-keywords")
