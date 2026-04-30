@@ -9,6 +9,18 @@ import requests
 
 
 PROVIDER_DEFAULTS = {
+    "nvidia": {
+        "label": "NVIDIA NIM",
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "key_names": ["NVIDIA_API_KEY", "AI_API_KEY"],
+        "default_model": "meta/llama-3.3-70b-instruct",
+    },
+    "groq": {
+        "label": "Groq (LPU — fastest free inference)",
+        "base_url": "https://api.groq.com/openai/v1",
+        "key_names": ["GROQ_API_KEY", "AI_API_KEY"],
+        "default_model": "llama-3.3-70b-versatile",
+    },
     "deepseek": {
         "label": "DeepSeek",
         "base_url": "https://api.deepseek.com/v1",
@@ -196,7 +208,12 @@ def _resolve_provider_config(runtime_overrides: dict | None = None) -> dict:
 
 def get_ai_client(runtime_overrides: dict | None = None) -> OpenAI:
     cfg = _resolve_provider_config(runtime_overrides)
-    return OpenAI(api_key=cfg["api_key"], base_url=cfg["base_url"])
+    return OpenAI(
+        api_key=cfg["api_key"],
+        base_url=cfg["base_url"],
+        timeout=60.0,
+        max_retries=2,
+    )
 
 
 def _chat_completion(
@@ -207,18 +224,28 @@ def _chat_completion(
 ) -> str:
     cfg = _resolve_provider_config()
     chosen_model = model or cfg["default_model"]
-    client = get_ai_client()
 
-    resp = client.chat.completions.create(
-        model=chosen_model,
-        messages=[
+    payload = {
+        "model": chosen_model,
+        "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=temperature,
+        "temperature": temperature,
+    }
+    headers = {
+        "Authorization": f"Bearer {cfg['api_key']}",
+        "Content-Type": "application/json",
+    }
+    resp = requests.post(
+        f"{cfg['base_url']}/chat/completions",
+        json=payload,
+        headers=headers,
+        timeout=120,
     )
-
-    return (resp.choices[0].message.content or "").strip()
+    resp.raise_for_status()
+    data = resp.json()
+    return (data["choices"][0]["message"]["content"] or "").strip()
 
 
 def list_models(

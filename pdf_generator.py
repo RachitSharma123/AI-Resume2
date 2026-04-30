@@ -636,12 +636,20 @@ def create_cover_letter_pdf(
     print(f"✅ Created cover letter: {output_path}")
 
 
+def _unwrap_resume_json(data: dict) -> dict:
+    """Unwrap resume_json key if AI returned a wrapped response."""
+    if "resume_json" in data:
+        data = data["resume_json"]
+        if isinstance(data, dict) and "resume_json" in data:
+            data = data["resume_json"]
+    return data
+
+
 def create_resume_pdf_bytes(
     data: dict, font_scale: float = 1.0, font_family: str = "Helvetica"
 ) -> bytes:
     """Generate resume PDF from a dict, return raw PDF bytes (no file I/O)."""
-    buf = io.BytesIO()
-    # Temporarily write to a temp path using BytesIO-backed canvas
+    data = _unwrap_resume_json(data)
     c_buf = io.BytesIO()
     _generate_resume_to_canvas(data, c_buf, font_scale, font_family)
     return c_buf.getvalue()
@@ -651,6 +659,7 @@ def create_cover_letter_pdf_bytes(
     data: dict, font_scale: float = 1.0, font_family: str = "Helvetica"
 ) -> bytes:
     """Generate cover letter PDF from a dict, return raw PDF bytes (no file I/O)."""
+    data = _unwrap_resume_json(data)
     c_buf = io.BytesIO()
     _generate_cover_letter_to_canvas(data, c_buf, font_scale, font_family)
     return c_buf.getvalue()
