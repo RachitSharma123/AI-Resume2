@@ -637,11 +637,18 @@ def create_cover_letter_pdf(
 
 
 def _unwrap_resume_json(data: dict) -> dict:
-    """Unwrap resume_json key if AI returned a wrapped response."""
+    """Unwrap resume_json key if AI returned a wrapped response.
+
+    Outer-level keys like cover_letter (added by the frontend after AI tailoring)
+    are preserved and override matching inner keys.
+    """
     if "resume_json" in data:
-        data = data["resume_json"]
-        if isinstance(data, dict) and "resume_json" in data:
-            data = data["resume_json"]
+        inner = data["resume_json"]
+        if isinstance(inner, dict):
+            if "resume_json" in inner:
+                inner = inner["resume_json"]
+            extra = {k: v for k, v in data.items() if k != "resume_json"}
+            return {**inner, **extra}
     return data
 
 
