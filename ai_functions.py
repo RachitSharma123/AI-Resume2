@@ -4,6 +4,8 @@ import json
 import os
 import re
 
+import json_repair
+
 from openai import OpenAI
 import requests
 
@@ -121,13 +123,23 @@ def _parse_ai_json(text: str) -> dict:
     try:
         return json.loads(json_str)
     except json.JSONDecodeError:
-        # Try Python literal_eval as fallback
-        pythonish = re.sub(r"\btrue\b", "True", json_str, flags=re.IGNORECASE)
-        pythonish = re.sub(r"\bfalse\b", "False", pythonish, flags=re.IGNORECASE)
-        pythonish = re.sub(r"\bnull\b", "None", pythonish, flags=re.IGNORECASE)
-        data = ast.literal_eval(pythonish)
-        if not isinstance(data, dict):
-            raise ValueError("Parsed AI response is not a JSON object.")
+        # Try json_repair for malformed AI output (unclosed arrays, trailing commas, etc.)
+        try:
+            data = json_repair.repair_json(json_str, return_objects=True)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+        # Last-resort: ast.literal_eval
+        try:
+            pythonish = re.sub(r"\btrue\b", "True", json_str, flags=re.IGNORECASE)
+            pythonish = re.sub(r"\bfalse\b", "False", pythonish, flags=re.IGNORECASE)
+            pythonish = re.sub(r"\bnull\b", "None", pythonish, flags=re.IGNORECASE)
+            data = ast.literal_eval(pythonish)
+            if not isinstance(data, dict):
+                raise ValueError("Parsed AI response is not a JSON object.")
+        except Exception as e:
+            raise ValueError(f"Could not parse AI response as JSON: {e}")
         return data
 
 
